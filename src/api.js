@@ -9,9 +9,12 @@ const payload = storedToken ? getPayload(storedToken) : null;
 
 if (payload && storedUrl) {
   const timeDiff = payload.exp.getTime() - Date.now();
+  const project = payload.project;
+
   if (timeDiff > 10000) {
     client.url = storedUrl;
     client.token = storedToken;
+    client.env = project;
   } else {
     store.dispatch("clearAuth");
   }
