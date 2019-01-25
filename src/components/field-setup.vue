@@ -384,12 +384,12 @@
         <v-input
               type="text"
               disabled
-              :value="dddddddd"
+              :value="relationInfoM2M[0].field_many"
           />
 </div>
 <!-- Junction field2 ---------------------------------------- -->
         <v-simple-select
-          :disabled="createM2Mjunction"
+          v-if="!createM2Mjunction"
           class="select"
           v-model="relationInfoM2M[currentM2MIndex === 0 ? 1 : 0].field_many"
         >
@@ -400,6 +400,14 @@
             >{{ field }}</option
           >
         </v-simple-select>
+
+        <div class="select" v-if="createM2Mjunction">
+        <v-input
+              type="text"
+              disabled
+              v-model="createdM2MjunctionField"
+          />
+        </div>
 
         <i class="material-icons">arrow_backward</i>
 
@@ -594,7 +602,6 @@ export default {
 
       createM2Mjunction: false,
       createM2MjunctionName: null,
-      createM2MjunctionFields: null
     };
   },
   computed: {
@@ -870,6 +877,9 @@ export default {
     },
     isNumeric() {
       return this.type === "integer";
+    },
+    createdM2MjunctionField() {
+      return this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one + "_id";
     }
   },
   created() {
@@ -1007,16 +1017,17 @@ export default {
       }
     },
 
-    createM2MjunctionName(enabled) {
+    createM2Mjunction(enabled) {
       if (enabled) {
-this.relationInfoM2M[0].collection_many = collectionInfo.collection;
+this.relationInfoM2M[0].field_one = this.collectionInfo.collection;
+this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
       }
     },
     createM2MjunctionName(val) {
       var formatval = this.validateFieldName(val);
       this.createM2MjunctionName = formatval;
- //     this.relationInfoM2M[0].collection_many = formatval;
-   //   this.relationInfoM2M[1].collection_many = formatval;
+    //  this.relationInfoM2M[0].collection_many = formatval;
+    //  this.relationInfoM2M[1].collection_many = formatval;
     }
   },
   methods: {
