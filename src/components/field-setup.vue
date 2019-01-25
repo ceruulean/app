@@ -879,7 +879,10 @@ export default {
       return this.type === "integer";
     },
     createdM2MjunctionField() {
-      return this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one + "_id";
+      var collectionName = this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one;
+      this.relationInfoM2M[1].field_many = collectionName + "_id";
+      console.log(this.relationInfoM2M);
+      return collectionName + "_id";
     }
   },
   created() {
@@ -1021,13 +1024,15 @@ export default {
       if (enabled) {
 this.relationInfoM2M[0].field_one = this.collectionInfo.collection;
 this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
+      } else {
+        this.initRelation();
       }
     },
     createM2MjunctionName(val) {
       var formatval = this.validateFieldName(val);
       this.createM2MjunctionName = formatval;
-    //  this.relationInfoM2M[0].collection_many = formatval;
-    //  this.relationInfoM2M[1].collection_many = formatval;
+      this.relationInfoM2M[0].collection_many = formatval;
+      this.relationInfoM2M[1].collection_many = formatval;
     }
   },
   methods: {
