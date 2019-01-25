@@ -191,6 +191,19 @@
         <p class="subtext">
           {{ $t("relation_setup_copy", { relation: $t(relation) }) }}
         </p>
+
+        <p v-if="relation === 'm2m'">
+          <label class="toggle"
+              ><v-toggle v-model="createM2Mjunction" /> $t("Also create new junction collection") </label
+          >
+          <span class="subtext">
+            $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
+          </span>
+          <label v-if="createM2Mjunction"
+          >$t("Junction Name")
+          <v-input type="text" v-model="createM2MjunctionName" :placeholder="'itemname_fieldname'"
+        /></label>
+        </p>
       </template>
 
       <form v-if="relation === 'm2o'" class="single">
@@ -295,7 +308,7 @@
           >
         </v-simple-select>
       </form>
-
+<!-- Changes -->
       <form v-if="relation === 'm2m'" class="full">
         <p>{{ $t("this_collection") }}</p>
 
@@ -317,9 +330,9 @@
 
         <i class="material-icons">arrow_forward</i>
 
-        <p>{{ $t("junction_collection") }}</p>
+        <p>{{ $t("junction_collection") }}</p> <!-- Junction Collection ------------------------ -->
 
-        <v-simple-select
+        <v-simple-select v-if="!createM2Mjunction"
           class="select"
           :value="relationInfoM2M[0].collection_many"
           @input="
@@ -347,7 +360,15 @@
           </optgroup>
         </v-simple-select>
 
-        <v-simple-select
+        <div class="select" v-if="createM2Mjunction">
+        <v-input
+              type="text"
+              disabled
+              v-model="createM2MjunctionName"
+          />
+        </div>
+<!-- Junction field1 ---------------------------------------- -->
+        <v-simple-select v-if="!createM2Mjunction"
           class="select"
           v-model="relationInfoM2M[currentM2MIndex].field_many"
         >
@@ -359,7 +380,16 @@
           >
         </v-simple-select>
 
+<div class="select" v-if="createM2Mjunction">
+        <v-input
+              type="text"
+              disabled
+              :value="dddddddd"
+          />
+</div>
+<!-- Junction field2 ---------------------------------------- -->
         <v-simple-select
+          :disabled="createM2Mjunction"
           class="select"
           v-model="relationInfoM2M[currentM2MIndex === 0 ? 1 : 0].field_many"
         >
@@ -560,7 +590,11 @@ export default {
 
           junction_field: null
         }
-      ]
+      ],
+
+      createM2Mjunction: false,
+      createM2MjunctionName: null,
+      createM2MjunctionFields: null
     };
   },
   computed: {
@@ -943,13 +977,7 @@ export default {
       }
     },
     field(val) {
-      // Based on https://gist.github.com/mathewbyrne/1280286
-      this.field = val
-        .toString()
-        .toLowerCase()
-        .replace(/\s+/g, "_") // Replace spaces with _
-        .replace(/[^\w_]+/g, "") // Remove all non-word chars
-        .replace(/__+/g, "_"); // Replace multiple _ with single _
+      this.field = this.validateFieldName(val)
 
       if (this.relation) {
         if (this.relation === "m2o") {
@@ -977,6 +1005,18 @@ export default {
           this.getM2OID();
         }
       }
+    },
+
+    createM2MjunctionName(enabled) {
+      if (enabled) {
+this.relationInfoM2M[0].collection_many = collectionInfo.collection;
+      }
+    },
+    createM2MjunctionName(val) {
+      var formatval = this.validateFieldName(val);
+      this.createM2MjunctionName = formatval;
+ //     this.relationInfoM2M[0].collection_many = formatval;
+   //   this.relationInfoM2M[1].collection_many = formatval;
     }
   },
   methods: {
@@ -1263,6 +1303,15 @@ export default {
     primaryKeyFieldByCollection(collection) {
       const fields = this.fields(collection);
       return this.$lodash.find(fields, { primary_key: true });
+    },
+    validateFieldName(string) {
+      // Based on https://gist.github.com/mathewbyrne/1280286
+        return string
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, "_") // Replace spaces with _
+        .replace(/[^\w_]+/g, "") // Remove all non-word chars
+        .replace(/__+/g, "_"); // Replace multiple _ with single _
     }
   }
 };
@@ -1589,4 +1638,25 @@ details {
     }
   }
 }
+
+.toggle {
+      display: flex;
+      align-items: center;
+      text-transform: capitalize;
+      font-size: 1rem;
+      cursor: pointer;
+      width: max-content;
+
+      &:not(.disabled):hover {
+        color: var(--accent);
+      }
+
+      > *:first-child {
+        margin-right: 10px;
+      }
+
+      &.disabled {
+        color: var(--light-gray);
+      }
+    }
 </style>
