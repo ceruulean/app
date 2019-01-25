@@ -200,7 +200,7 @@
             $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
           </span>
           <label v-if="createM2Mjunction"
-          >$t("Junction Name")
+          >$t("Junction Collection Name")
           <v-input type="text" v-model="createM2MjunctionName" :placeholder="'itemname_fieldname'"
         /></label>
         </p>
@@ -881,7 +881,6 @@ export default {
     createdM2MjunctionField() {
       var collectionName = this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one;
       this.relationInfoM2M[1].field_many = collectionName + "_id";
-      console.log(this.relationInfoM2M);
       return collectionName + "_id";
     }
   },
@@ -1120,6 +1119,9 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
 
         if (this.relation === "m2m") {
           result.relation = [...this.relationInfoM2M];
+          if (this.createM2Mjunction === true) {
+            this.createM2MjunctionCollection();
+          }
         }
       }
 
@@ -1328,6 +1330,60 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
         .replace(/\s+/g, "_") // Replace spaces with _
         .replace(/[^\w_]+/g, "") // Remove all non-word chars
         .replace(/__+/g, "_"); // Replace multiple _ with single _
+    },
+    createM2MjunctionCollection() {
+      var collectionData =
+            {
+          "collection": this.createM2MjunctionName,
+          "hidden": true,
+          "note": "Junction collection",
+          "fields": [
+              {
+                  "field": "id",
+                  "type": "integer",
+                  "datatype": "int",
+                  "interface": "primary-key",
+                  "primary_key": true,
+                  "auto_increment": true,
+                  "signed": false
+              },
+              {
+                  "field": this.relationInfoM2M[0].field_many,
+                  "type": "string",
+                  "length": 255,
+                  "datatype": "varchar",
+                  "interface": "text-input",
+                  "readonly": false,
+                  "required": true,
+              },
+              {
+                  "field": this.relationInfoM2M[1].field_many,
+                  "type": "string",
+                  "length": 255,
+                  "datatype": "varchar",
+                  "interface": "text-input",
+                  "readonly": false,
+                  "required": true,
+              }
+          ]
+      }
+    
+    this.$api
+      .createCollection(
+          collectionData,
+          {
+            fields: "*.*"
+          }
+        )
+        .then(res => {
+          console.log(res.data)
+        })
+        .catch(error => {
+          this.$events.emit("error", {
+            notify: this.$t("something_went_wrong_body"),
+            error
+          });
+        })
     }
   }
 };
@@ -1654,25 +1710,4 @@ details {
     }
   }
 }
-
-.toggle {
-      display: flex;
-      align-items: center;
-      text-transform: capitalize;
-      font-size: 1rem;
-      cursor: pointer;
-      width: max-content;
-
-      &:not(.disabled):hover {
-        color: var(--accent);
-      }
-
-      > *:first-child {
-        margin-right: 10px;
-      }
-
-      &.disabled {
-        color: var(--light-gray);
-      }
-    }
 </style>
