@@ -193,9 +193,9 @@
         </p>
 
         <p v-if="relation === 'm2m'">
-          <label class="toggle"
-              ><v-toggle v-model="createM2Mjunction" /> $t("Also create new junction collection") </label
-          >
+
+          <v-checkbox value="m2mjunction" label="$t('Also create new junction collection')" id="createM2Mjunction" :checked="createM2Mjunction"
+          @change="createM2Mjunction = !createM2Mjunction"/>
           <span class="subtext">
             $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
           </span>
