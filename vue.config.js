@@ -7,5 +7,5 @@ module.exports = {
     appleMobileWebAppCapable: "yes",
     appleMobileWebAppStatusBarStyle: "black"
   },
-  baseUrl: process.env.NODE_ENV === "production" ? "" : "http://directus.localhost"
+  baseUrl: process.env.NODE_ENV === "production" ? "" : "/"
 };

@@ -196,13 +196,13 @@
 
           <v-checkbox value="m2mjunction" label="$t('Also create new junction collection')" id="createM2Mjunction" :checked="createM2Mjunction"
           @change="createM2Mjunction = !createM2Mjunction"/>
-          <span class="subtext">
+          <span class="note">
             $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
           </span>
           <label v-if="createM2Mjunction"
           >$t("Junction Collection Name")
           <v-input type="text" v-model="createM2MjunctionName" :placeholder="'itemname_fieldname'"
-        /></label>
+          /></label>
         </p>
       </template>
 
@@ -1345,7 +1345,8 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
                   "interface": "primary-key",
                   "primary_key": true,
                   "auto_increment": true,
-                  "signed": false
+                  "signed": false,
+                  "length": 10
               },
               {
                   "field": this.relationInfoM2M[0].field_many,
@@ -1376,7 +1377,7 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
           }
         )
         .then(res => {
-          console.log(res.data)
+         // console.log(res.data)
         })
         .catch(error => {
           this.$events.emit("error", {
