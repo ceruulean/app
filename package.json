@@ -37,6 +37,7 @@
     "body-scroll-lock": "^2.6.1",
     "convert-range": "^1.1.0",
     "date-fns": "^1.29.0",
+    "eslint": "^5.12.1",
     "filesize": "^3.6.1",
     "idlejs": "^2.0.1",
     "lodash": "^4.17.5",

@@ -328,7 +328,6 @@
 
         <i class="material-icons">arrow_forward</i>
 
-<!--start gray box --><div :class="{'autogen' : createM2Mjunction}">
         <p>{{ $t("junction_collection") }}</p> <!-- Junction Collection ------------------------ -->
 
         <v-simple-select v-if="!createM2Mjunction"
@@ -363,7 +362,8 @@
         <v-input
               type="text"
               v-model="createM2MjunctionName"
-              :placeholder="'itemname_fieldname'"
+
+              :placeholder="$t('enter_junction_name')"
           />
         </div>
 <!-- Junction field1 ---------------------------------------- -->
@@ -382,8 +382,8 @@
 <div class="select" v-if="createM2Mjunction">
         <v-input
               type="text"
-              disabled
-              :value="relationInfoM2M[0].field_many"
+              v-model="relationInfoM2M[currentM2MIndex].field_many"
+              :placeholder="autoM2MjunctionField(collectionInfo.collection)"
           />
 </div>
 <!-- Junction field2 ---------------------------------------- -->
@@ -403,19 +403,14 @@
         <div class="select" v-if="createM2Mjunction">
         <v-input
               type="text"
-              disabled
-              v-model="createdM2MjunctionField"
+              v-model="relationInfoM2M[currentM2MIndex === 0 ? 1 : 0].field_many"
+              :placeholder="autoM2MjunctionField(relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one)"
           />
         </div>
 
-<!-- Moved checkbox here -->
-          <v-checkbox value="m2mjunction" label="$t('Auto-generate')" id="createM2Mjunction" :checked="createM2Mjunction"
+<!-- Auto Generate Junction Collection Code -->
+          <v-checkbox value="m2mjunction" label="$t('auto_generate')" id="createM2Mjunction" :checked="createM2Mjunction"
           @change="createM2Mjunction = !createM2Mjunction"/>
-<!-- <span class="note">
-            $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
-          </span>
--->
-</div> <!-- end gray box -->
 
         <i class="material-icons">arrow_backward</i>
 
@@ -534,6 +529,7 @@
 
 <script>
 import mapping, { datatypes } from "../type-map";
+import { defaultFull } from "../store/modules/permissions/defaults";
 
 export default {
   name: "v-field-setup",
@@ -885,11 +881,6 @@ export default {
     },
     isNumeric() {
       return this.type === "integer";
-    },
-    createdM2MjunctionField() {
-      var collectionName = this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one;
-      this.relationInfoM2M[1].field_many = collectionName + "_id";
-      return collectionName + "_id";
     }
   },
   created() {
@@ -1029,8 +1020,11 @@ export default {
 
     createM2Mjunction(enabled) {
       if (enabled) {
-this.relationInfoM2M[0].field_one = this.collectionInfo.collection;
-this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
+        var ix = this.currentM2MIndex;
+        this.relationInfoM2M[ix].field_one = this.collectionInfo.collection;
+        this.relationInfoM2M[ix === 0 ? 1 : 0].field_one = this.collectionInfo.collection;
+        this.relationInfoM2M[ix].field_many = null;
+        this.relationInfoM2M[ix === 0 ? 1 : 0].field_many = null;
       } else {
         this.initRelation();
       }
@@ -1339,40 +1333,47 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
         .replace(/[^\w_]+/g, "") // Remove all non-word chars
         .replace(/__+/g, "_"); // Replace multiple _ with single _
     },
+    autoM2MjunctionField(collectionName) {
+      //var collectionName = this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one;
+      //this.relationInfoM2M[1].field_many = collectionName + "_id";
+      return collectionName + "_id";
+    },
+
+    // issue here getting the field to appear without refreshing
     createM2MjunctionCollection() {
       var collectionData =
             {
-          "collection": this.createM2MjunctionName,
-          "hidden": true,
-          "note": "Junction collection",
-          "fields": [
+          collection: this.createM2MjunctionName,
+          hidden: true,
+          note: "Junction collection",
+          fields: [
               {
-                  "field": "id",
-                  "type": "integer",
-                  "datatype": "int",
-                  "interface": "primary-key",
-                  "primary_key": true,
-                  "auto_increment": true,
-                  "signed": false,
-                  "length": 10
+                  field: "id",
+                  type: "integer",
+                  datatype: "int",
+                  interface: "primary-key",
+                  primary_key: true,
+                  auto_increment: true,
+                  signed: false,
+                  length: 10
               },
               {
-                  "field": this.relationInfoM2M[0].field_many,
-                  "type": "string",
-                  "length": 255,
-                  "datatype": "varchar",
-                  "interface": "text-input",
-                  "readonly": false,
-                  "required": true,
+                  field: this.relationInfoM2M[0].field_many,
+                  type: "string",
+                  length: 255,
+                  datatype: "varchar",
+                  interface: "text-input",
+                  readonly: false,
+                  required: true,
               },
               {
-                  "field": this.relationInfoM2M[1].field_many,
-                  "type": "string",
-                  "length": 255,
-                  "datatype": "varchar",
-                  "interface": "text-input",
-                  "readonly": false,
-                  "required": true,
+                  field: this.relationInfoM2M[1].field_many,
+                  type: "string",
+                  length: 255,
+                  datatype: "varchar",
+                  interface: "text-input",
+                  readonly: false,
+                  required: true,
               }
           ]
       }
@@ -1407,7 +1408,7 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
 
     fieldDispatch[this.relationInfoM2M[0].field_many] = {
           collection: this.createM2MjunctionName,
-          field: "created_on",
+          field: this.relationInfoM2M[0].field_many,
           datatype: "varchar",
           unique: false,
           primary_key: false,
@@ -1433,7 +1434,7 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
 
     fieldDispatch[this.relationInfoM2M[1].field_many] = {
           collection: this.createM2MjunctionName,
-          field: "created_on",
+          field: this.relationInfoM2M[1].field_many,
           datatype: "varchar",
           unique: false,
           primary_key: false,
@@ -1461,29 +1462,22 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
       .createCollection(
           collectionData,
           {
-            fields: "*.*"
+            fields: "*"
           }
         )
-        .then(res => {
-         // console.log(res.data)
-        })
+        .then(res => res.data)
         .then(collection => {
-         // this.$store.dispatch("loadingFinished", id);
           this.$store.dispatch("addCollection", {
             ...collection,
-
-            // This should ideally be returned from the API
-            // https://github.com/directus/api/issues/207
-            fields: fieldsToDispatch
+            fields: fieldDispatch
           });
           this.$store.dispatch("addPermission", {
-            collection: this.newName,
+            collection: this.createM2MjunctionName,
             permission: {
               $create: defaultFull,
               ...defaultFull
             }
           });
-          this.$router.push(`/settings/collections/${this.newName}`);
         })
         .catch(error => {
           this.$events.emit("error", {
@@ -1759,7 +1753,8 @@ details {
     "a b c d e"
     "f g h i j"
     "k l m n o"
-    "p q r s t";
+    "p q r s t"
+    "u u v w w";
   grid-template-columns: 1fr 20px 1fr 20px 1fr;
   grid-gap: 10px 0;
   justify-content: center;
@@ -1817,8 +1812,15 @@ details {
     }
   }
 
+  .form-checkbox {
+    &:first-of-type {
+      grid-area: v;
+    }
+  }
+
   .autogen {
       background-color:pink;
+      grid-area: 1 / 3 / 5 / 3;
   }
 }
 </style>
