@@ -191,15 +191,6 @@
         <p class="subtext">
           {{ $t("relation_setup_copy", { relation: $t(relation) }) }}
         </p>
-
-        <p v-if="relation === 'm2m'">
-
-          <v-checkbox value="m2mjunction" label="$t('Also create new junction collection')" id="createM2Mjunction" :checked="createM2Mjunction"
-          @change="createM2Mjunction = !createM2Mjunction"/>
-          <span class="note">
-            $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
-          </span>
-        </p>
       </template>
 
       <form v-if="relation === 'm2o'" class="single">
@@ -337,6 +328,7 @@
 
         <i class="material-icons">arrow_forward</i>
 
+<!--start gray box --><div :class="{'autogen' : createM2Mjunction}">
         <p>{{ $t("junction_collection") }}</p> <!-- Junction Collection ------------------------ -->
 
         <v-simple-select v-if="!createM2Mjunction"
@@ -415,6 +407,15 @@
               v-model="createdM2MjunctionField"
           />
         </div>
+
+<!-- Moved checkbox here -->
+          <v-checkbox value="m2mjunction" label="$t('Auto-generate')" id="createM2Mjunction" :checked="createM2Mjunction"
+          @change="createM2Mjunction = !createM2Mjunction"/>
+<!-- <span class="note">
+            $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
+          </span>
+-->
+</div> <!-- end gray box -->
 
         <i class="material-icons">arrow_backward</i>
 
@@ -1814,6 +1815,10 @@ details {
     &:last-of-type {
       grid-area: s;
     }
+  }
+
+  .autogen {
+      background-color:pink;
   }
 }
 </style>
