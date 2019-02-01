@@ -24,18 +24,19 @@
           @input="$emit('input', $event)"
         />
 
-        <v-permissions-row
-          v-if="showDirectus"
-          v-for="(permission, name, i) in directusRows"
-          :class="{ border: i === 0 }"
-          :permission="permission"
-          :permission-name="name"
-          :statuses="(statuses[name] || {}).mapping"
-          :key="name"
-          :fields="fields[name]"
-          system
-          @input="$emit('input', $event)"
-        />
+        <template v-if="showDirectus">
+          <v-permissions-row
+            v-for="(permission, name, i) in directusRows"
+            :class="{ border: i === 0 }"
+            :permission="permission"
+            :permission-name="name"
+            :statuses="(statuses[name] || {}).mapping"
+            :key="name"
+            :fields="fields[name]"
+            system
+            @input="$emit('input', $event)"
+          />
+        </template>
       </div>
     </div>
     <label

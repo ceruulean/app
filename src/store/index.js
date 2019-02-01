@@ -41,13 +41,17 @@ const store = new Vuex.Store({
   }
 });
 
+// Make a clone of the current Vuex state without the reactivity
+const initialStateCopy = JSON.parse(JSON.stringify(store.state));
+
 export default store;
 
 export function resetState() {
-  const initialStateCopy = JSON.parse(JSON.stringify(state));
+  // the store.replaceState method will make the passed in object reactive.
+  // This will make a clone to modify, so the original initialStateCopy stays
+  // as-is
+  const newState = Object.assign({}, initialStateCopy);
+  newState.auth.url = store.state.auth.url;
 
-  // don't reset the last used url:
-  initialStateCopy.auth.url = store.state.auth.url;
-
-  store.replaceState(JSON.parse(JSON.stringify(initialStateCopy)));
+  store.replaceState(newState);
 }

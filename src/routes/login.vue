@@ -482,7 +482,7 @@ export default {
         })
         .catch(error => {
           this.$events.emit("error", {
-            notify: this.$t("something_went_wrong_body"),
+            notify: error.response.data.error.message,
             error
           });
 

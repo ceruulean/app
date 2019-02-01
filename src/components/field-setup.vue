@@ -250,10 +250,21 @@
           </optgroup>
         </v-simple-select>
 
-        <v-simple-select class="select" :value="primaryKeyField.field" disabled>
-          <option selected :value="primaryKeyField.field">{{
-            primaryKeyField.field
-          }}</option>
+        <v-simple-select
+          class="select"
+          :value="
+            primaryKeyFieldByCollection(relationInfo.collection_one).field
+          "
+          disabled
+        >
+          <option
+            selected
+            :value="
+              primaryKeyFieldByCollection(relationInfo.collection_one).field
+            "
+          >
+            {{ primaryKeyFieldByCollection(relationInfo.collection_one).field }}
+          </option>
         </v-simple-select>
       </form>
 

@@ -35,15 +35,16 @@
     <loader v-else area="full-page" />
 
     <portal-target name="modal" multiple />
-    <v-notification />
   </div>
 
-  <router-view v-else class="directus" />
+  <div v-else class="public">
+    <router-view />
+    <v-notification />
+  </div>
 </template>
 
 <script>
 import { mapState } from "vuex";
-import VBlocker from "./components/blocker.vue";
 import VError from "./components/error.vue";
 import { TOGGLE_NAV } from "./store/mutation-types";
 import VNavSidebar from "./components/sidebars/nav-sidebar/nav-sidebar.vue";
@@ -55,7 +56,6 @@ export default {
     title: "Directus"
   },
   components: {
-    VBlocker,
     VError,
     VNavSidebar,
     VNotification
@@ -77,6 +77,7 @@ export default {
       if (!this.hydrated) return null;
 
       const extensions = this.$store.state.extensions;
+
       if (
         Object.values(extensions.interfaces).length === 0 &&
         Object.values(extensions.layouts).length === 0 &&
@@ -84,6 +85,8 @@ export default {
       ) {
         return true;
       }
+
+      return false;
     }
   },
   watch: {
@@ -157,5 +160,9 @@ body.no-padding {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+.public {
+  height: 100%;
 }
 </style>

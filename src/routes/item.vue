@@ -402,6 +402,8 @@ export default {
     // This will make the delete button update the item to the hidden status
     // instead of deleting it completely from the database
     softDeleteStatus() {
+      if (!this.collectionInfo.status_mapping) return null;
+
       const statusKeys = Object.keys(this.collectionInfo.status_mapping);
       const index = this.$lodash.findIndex(
         Object.values(this.collectionInfo.status_mapping),
@@ -577,16 +579,22 @@ export default {
       if (method === "copy") {
         const values = Object.assign({}, this.values);
 
-        let primaryKeyField = "";
-
+        // Delete fields that shouldn't / can't be duplicated
         this.$lodash.forEach(this.fields, (info, fieldName) => {
-          if (info.primary_key === true) primaryKeyField = fieldName;
+          if (info.primary_key === true) delete values[fieldName];
 
-          // Delete the alias type fields
-          if (info.type.toLowerCase() === "alias") delete values[fieldName];
+          switch (info.type.toLowerCase()) {
+            case "alias":
+            case "datetime_created":
+            case "datetime_updated":
+            case "user_created":
+            case "user_updated":
+            case "o2m":
+            case "m2o":
+              delete values[fieldName];
+              break;
+          }
         });
-
-        delete values[primaryKeyField];
 
         const id = this.$helpers.shortid.generate();
         this.$store.dispatch("loadingStart", { id });

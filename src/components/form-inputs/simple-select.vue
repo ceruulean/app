@@ -47,9 +47,7 @@ export default {
       this.valueText = event.target.options[event.target.selectedIndex].text;
     },
     getValueText() {
-      const selectElement = this.$refs.selectElement;
-      this.valueText =
-        selectElement.options[selectElement.selectedIndex].text || this.value;
+      this.valueText = this.value;
     }
   },
   mounted() {
