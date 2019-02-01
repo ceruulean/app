@@ -306,7 +306,7 @@
           >
         </v-simple-select>
       </form>
-<!-- Changes -->
+
       <form v-if="relation === 'm2m'" class="full">
         <p>{{ $t("this_collection") }}</p>
 
@@ -328,7 +328,7 @@
 
         <i class="material-icons">arrow_forward</i>
 
-        <p>{{ $t("junction_collection") }}</p> <!-- Junction Collection ------------------------ -->
+        <p>{{ $t("junction_collection") }}</p>
 
         <v-simple-select v-if="!createM2Mjunction"
           class="select"
@@ -358,15 +358,14 @@
           </optgroup>
         </v-simple-select>
 
-        <div class="select" v-if="createM2Mjunction">
         <v-input
-              type="text"
-              v-model="createM2MjunctionName"
+          class="select"
+          v-if="createM2Mjunction"
+          type="text"
+          v-model="createM2MjunctionName"
+          :placeholder="$t('enter_junction_name')"
+        />
 
-              :placeholder="$t('enter_junction_name')"
-          />
-        </div>
-<!-- Junction field1 ---------------------------------------- -->
         <v-simple-select v-if="!createM2Mjunction"
           class="select"
           v-model="relationInfoM2M[currentM2MIndex].field_many"
@@ -379,14 +378,14 @@
           >
         </v-simple-select>
 
-<div class="select" v-if="createM2Mjunction">
         <v-input
-              type="text"
-              v-model="relationInfoM2M[currentM2MIndex].field_many"
-              :placeholder="autoM2MjunctionField(collectionInfo.collection)"
-          />
-</div>
-<!-- Junction field2 ---------------------------------------- -->
+          class="select"
+          v-if="createM2Mjunction"
+          type="text"
+          v-model="relationInfoM2M[currentM2MIndex].field_many"
+          :placeholder="autoM2MjunctionField(collectionInfo.collection)"
+        />
+
         <v-simple-select
           v-if="!createM2Mjunction"
           class="select"
@@ -400,17 +399,21 @@
           >
         </v-simple-select>
 
-        <div class="select" v-if="createM2Mjunction">
         <v-input
-              type="text"
-              v-model="relationInfoM2M[currentM2MIndex === 0 ? 1 : 0].field_many"
-              :placeholder="autoM2MjunctionField(relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one)"
-          />
-        </div>
+          class="select"
+          v-if="createM2Mjunction"
+          type="text"
+          v-model="relationInfoM2M[currentM2MIndex === 0 ? 1 : 0].field_many"
+          :placeholder="autoM2MjunctionField(relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one)"
+        />
 
-<!-- Auto Generate Junction Collection Code -->
-          <v-checkbox value="m2mjunction" label="$t('auto_generate')" id="createM2Mjunction" :checked="createM2Mjunction"
-          @change="createM2Mjunction = !createM2Mjunction"/>
+        <v-checkbox
+          value="m2mjunction"
+          :label="$t('auto_generate')"
+          id="createM2Mjunction"
+          :checked="createM2Mjunction"
+          @change="createM2Mjunction = !createM2Mjunction"
+        />
 
         <i class="material-icons">arrow_backward</i>
 
@@ -1816,11 +1819,6 @@ details {
     &:first-of-type {
       grid-area: v;
     }
-  }
-
-  .autogen {
-      background-color:pink;
-      grid-area: 1 / 3 / 5 / 3;
   }
 }
 </style>
