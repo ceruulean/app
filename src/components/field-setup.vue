@@ -199,10 +199,6 @@
           <span class="note">
             $t("Enabling this option will automatically create a new collection that contains the fields necessary to hold the M2M relationships. The new junction collection will be hidden by default.")
           </span>
-          <label v-if="createM2Mjunction"
-          >$t("Junction Collection Name")
-          <v-input type="text" v-model="createM2MjunctionName" :placeholder="'itemname_fieldname'"
-          /></label>
         </p>
       </template>
 
@@ -374,8 +370,8 @@
         <div class="select" v-if="createM2Mjunction">
         <v-input
               type="text"
-              disabled
               v-model="createM2MjunctionName"
+              :placeholder="'itemname_fieldname'"
           />
         </div>
 <!-- Junction field1 ---------------------------------------- -->
@@ -1379,7 +1375,87 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
               }
           ]
       }
-    
+
+    var fieldDispatch = {
+      id: {
+          auto_increment: true,
+          collection: this.createM2MjunctionName,
+          datatype: "INT",
+          default_value: null,
+          field: "id",
+          group: null,
+          hidden_detail: true,
+          hidden_browse: true,
+          interface: "primary-key",
+          length: "10",
+          locked: 0,
+          note: "",
+          options: null,
+          primary_key: true,
+          readonly: 0,
+          required: true,
+          signed: false,
+          sort: 1,
+          translation: null,
+          type: "integer",
+          unique: false,
+          validation: null,
+          width: 4
+        }
+    }
+
+    fieldDispatch[this.relationInfoM2M[0].field_many] = {
+          collection: this.createM2MjunctionName,
+          field: "created_on",
+          datatype: "varchar",
+          unique: false,
+          primary_key: false,
+          auto_increment: false,
+          default_value: null,
+          note: null,
+          signed: true,
+          type: "string",
+          sort: 0,
+          interface: "text-input",
+          hidden_detail: true,
+          hidden_browse: true,
+          required: true,
+          options: null,
+          locked: false,
+          translation: null,
+          readonly: false,
+          width: 4,
+          validation: null,
+          group: null,
+          length: 255
+    };
+
+    fieldDispatch[this.relationInfoM2M[1].field_many] = {
+          collection: this.createM2MjunctionName,
+          field: "created_on",
+          datatype: "varchar",
+          unique: false,
+          primary_key: false,
+          auto_increment: false,
+          default_value: null,
+          note: null,
+          signed: true,
+          type: "string",
+          sort: 0,
+          interface: "text-input",
+          hidden_detail: true,
+          hidden_browse: true,
+          required: true,
+          options: null,
+          locked: false,
+          translation: null,
+          readonly: false,
+          width: 4,
+          validation: null,
+          group: null,
+          length: 255
+    };
+
     this.$api
       .createCollection(
           collectionData,
@@ -1389,6 +1465,24 @@ this.relationInfoM2M[0].field_many = this.collectionInfo.collection+"_id";
         )
         .then(res => {
          // console.log(res.data)
+        })
+        .then(collection => {
+         // this.$store.dispatch("loadingFinished", id);
+          this.$store.dispatch("addCollection", {
+            ...collection,
+
+            // This should ideally be returned from the API
+            // https://github.com/directus/api/issues/207
+            fields: fieldsToDispatch
+          });
+          this.$store.dispatch("addPermission", {
+            collection: this.newName,
+            permission: {
+              $create: defaultFull,
+              ...defaultFull
+            }
+          });
+          this.$router.push(`/settings/collections/${this.newName}`);
         })
         .catch(error => {
           this.$events.emit("error", {
