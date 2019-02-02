@@ -58,7 +58,7 @@ export default {
       if (Array.isArray(this.modelValue)) {
         return this.modelValue.includes(this.value);
       }
-      
+
       return this.modelValue === this.trueValue || this.checked === true;
     }
   },
