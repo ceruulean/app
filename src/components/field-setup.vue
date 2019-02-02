@@ -330,7 +330,8 @@
 
         <p>{{ $t("junction_collection") }}</p>
 
-        <v-simple-select v-if="!createM2Mjunction"
+        <v-simple-select
+          v-if="!createM2Mjunction"
           class="select"
           :value="relationInfoM2M[0].collection_many"
           @input="
@@ -366,7 +367,8 @@
           :placeholder="autoM2Msuggestion(collectionInfo.collection, relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one)"
         />
 
-        <v-simple-select v-if="!createM2Mjunction"
+        <v-simple-select
+          v-if="!createM2Mjunction"
           class="select"
           v-model="relationInfoM2M[currentM2MIndex].field_many"
         >
