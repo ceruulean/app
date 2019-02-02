@@ -36,6 +36,7 @@ export default {
   statuses: "Statuses",
   api_url: "API URL",
   api_installed: "API Successfully Installed",
+  auto_generate: "Auto-Generate",
   auto_generated: "Automatically generated...",
   batch: "Batch",
   batch_edit: "Batch Editing Items: {collection}",
