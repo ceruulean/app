@@ -363,7 +363,7 @@
           v-if="createM2Mjunction"
           type="text"
           v-model="createM2MjunctionName"
-          :placeholder="$t('enter_junction_name')"
+          :placeholder="autoM2Msuggestion(collectionInfo.collection, relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one)"
         />
 
         <v-simple-select v-if="!createM2Mjunction"
@@ -383,7 +383,7 @@
           v-if="createM2Mjunction"
           type="text"
           v-model="relationInfoM2M[currentM2MIndex].field_many"
-          :placeholder="autoM2MjunctionField(collectionInfo.collection)"
+          :placeholder="autoM2Msuggestion(collectionInfo.collection, 'id')"
         />
 
         <v-simple-select
@@ -404,7 +404,7 @@
           v-if="createM2Mjunction"
           type="text"
           v-model="relationInfoM2M[currentM2MIndex === 0 ? 1 : 0].field_many"
-          :placeholder="autoM2MjunctionField(relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one)"
+          :placeholder="autoM2Msuggestion(relationInfoM2M[currentM2MIndex == 0 ? 1 : 0].collection_one, 'id')"
         />
 
         <v-checkbox
@@ -1006,9 +1006,15 @@ export default {
     relationInfoM2M: {
       deep: true,
       handler() {
-        this.relationInfoM2M[0].junction_field = this.relationInfoM2M[1].field_many;
-        this.relationInfoM2M[1].junction_field = this.relationInfoM2M[0].field_many;
-
+        if (this.createM2Mjunction) {
+          var val0 = this.relationInfoM2M[0].field_many = this.validateFieldName(this.relationInfoM2M[0].field_many);
+          var val1 = this.relationInfoM2M[1].field_many = this.validateFieldName(this.relationInfoM2M[1].field_many);
+          this.relationInfoM2M[0].junction_field = val1;
+          this.relationInfoM2M[1].junction_field = val0;
+        } else {
+          this.relationInfoM2M[0].junction_field = this.relationInfoM2M[1].field_many;
+          this.relationInfoM2M[1].junction_field = this.relationInfoM2M[0].field_many;
+        }
         this.relationInfoM2M[this.currentM2MIndex].field_one = this.field;
       }
     },
@@ -1024,10 +1030,12 @@ export default {
     createM2Mjunction(enabled) {
       if (enabled) {
         var ix = this.currentM2MIndex;
-        this.relationInfoM2M[ix].field_one = this.collectionInfo.collection;
-        this.relationInfoM2M[ix === 0 ? 1 : 0].field_one = this.collectionInfo.collection;
-        this.relationInfoM2M[ix].field_many = null;
-        this.relationInfoM2M[ix === 0 ? 1 : 0].field_many = null;
+        var currentCollection = this.collectionInfo.collection;
+        this.relationInfoM2M[ix].field_one = currentCollection;
+        this.relationInfoM2M[ix === 0 ? 1 : 0].field_one = currentCollection;
+        this.createM2MjunctionName = this.autoM2Msuggestion(currentCollection, this.relationInfoM2M[ix == 0 ? 1 : 0].collection_one);
+        this.relationInfoM2M[ix].field_many = this.autoM2Msuggestion(currentCollection, "id");
+        this.relationInfoM2M[ix === 0 ? 1 : 0].field_many = this.autoM2Msuggestion(this.relationInfoM2M[ix == 0 ? 1 : 0].collection_one, "id");
       } else {
         this.initRelation();
       }
@@ -1336,158 +1344,151 @@ export default {
         .replace(/[^\w_]+/g, "") // Remove all non-word chars
         .replace(/__+/g, "_"); // Replace multiple _ with single _
     },
-    autoM2MjunctionField(collectionName) {
-      //var collectionName = this.relationInfoM2M[this.currentM2MIndex == 0 ? 1 : 0].collection_one;
-      //this.relationInfoM2M[1].field_many = collectionName + "_id";
-      return collectionName + "_id";
+    autoM2Msuggestion(collectionName, suffix) {
+      return collectionName + "_" + suffix;
     },
 
-    // issue here getting the field to appear without refreshing
+    // issue here getting the new field to add M2M relationships without refreshing 
     createM2MjunctionCollection() {
-      var collectionData =
-            {
-          collection: this.createM2MjunctionName,
-          hidden: true,
-          note: "Junction collection",
-          fields: [
-              {
-                  field: "id",
-                  type: "integer",
-                  datatype: "int",
-                  interface: "primary-key",
-                  primary_key: true,
-                  auto_increment: true,
-                  signed: false,
-                  length: 10
-              },
-              {
-                  field: this.relationInfoM2M[0].field_many,
-                  type: "string",
-                  length: 255,
-                  datatype: "varchar",
-                  interface: "text-input",
-                  readonly: false,
-                  required: true,
-              },
-              {
-                  field: this.relationInfoM2M[1].field_many,
-                  type: "string",
-                  length: 255,
-                  datatype: "varchar",
-                  interface: "text-input",
-                  readonly: false,
-                  required: true,
-              }
-          ]
-      }
-
-    var fieldDispatch = {
-      id: {
-          auto_increment: true,
-          collection: this.createM2MjunctionName,
-          datatype: "INT",
-          default_value: null,
-          field: "id",
-          group: null,
-          hidden_detail: true,
-          hidden_browse: true,
-          interface: "primary-key",
-          length: "10",
-          locked: 0,
-          note: "",
-          options: null,
-          primary_key: true,
-          readonly: 0,
-          required: true,
-          signed: false,
-          sort: 1,
-          translation: null,
-          type: "integer",
-          unique: false,
-          validation: null,
-          width: 4
-        }
-    }
-
-    fieldDispatch[this.relationInfoM2M[0].field_many] = {
-          collection: this.createM2MjunctionName,
-          field: this.relationInfoM2M[0].field_many,
-          datatype: "varchar",
-          unique: false,
-          primary_key: false,
-          auto_increment: false,
-          default_value: null,
-          note: null,
-          signed: true,
-          type: "string",
-          sort: 0,
-          interface: "text-input",
-          hidden_detail: true,
-          hidden_browse: true,
-          required: true,
-          options: null,
-          locked: false,
-          translation: null,
-          readonly: false,
-          width: 4,
-          validation: null,
-          group: null,
-          length: 255
-    };
-
-    fieldDispatch[this.relationInfoM2M[1].field_many] = {
-          collection: this.createM2MjunctionName,
-          field: this.relationInfoM2M[1].field_many,
-          datatype: "varchar",
-          unique: false,
-          primary_key: false,
-          auto_increment: false,
-          default_value: null,
-          note: null,
-          signed: true,
-          type: "string",
-          sort: 0,
-          interface: "text-input",
-          hidden_detail: true,
-          hidden_browse: true,
-          required: true,
-          options: null,
-          locked: false,
-          translation: null,
-          readonly: false,
-          width: 4,
-          validation: null,
-          group: null,
-          length: 255
-    };
-
-    this.$api
-      .createCollection(
-          collectionData,
+      var collectionData = {
+        collection: this.createM2MjunctionName,
+        hidden: true,
+        note: this.$t("junction_collection"),
+        fields: [
           {
-            fields: "*"
+              field: "id",
+              type: "integer",
+              datatype: "int",
+              interface: "primary-key",
+              primary_key: true,
+              auto_increment: true,
+              signed: false,
+              length: 10
+          },
+          {
+              field: this.relationInfoM2M[0].field_many,
+              type: "integer",
+              length: 10,
+              datatype: "int",
+              interface: null,
+              readonly: false,
+              required: true,
+          },
+          {
+              field: this.relationInfoM2M[1].field_many,
+              type: "integer",
+              length: 10,
+              datatype: "int",
+              interface: null,
+              readonly: false,
+              required: true,
           }
-        )
-        .then(res => res.data)
-        .then(collection => {
-          this.$store.dispatch("addCollection", {
-            ...collection,
-            fields: fieldDispatch
-          });
-          this.$store.dispatch("addPermission", {
+        ]
+      }
+      var fieldDispatch = {
+        id: {
+            auto_increment: true,
             collection: this.createM2MjunctionName,
-            permission: {
-              $create: defaultFull,
-              ...defaultFull
+            datatype: "int",
+            default_value: null,
+            field: "id",
+            group: null,
+            hidden_detail: true,
+            hidden_browse: true,
+            interface: "primary-key",
+            length: "10",
+            locked: 0,
+            note: null,
+            options: null,
+            primary_key: true,
+            readonly: 0,
+            required: true,
+            signed: false,
+            sort: 1,
+            translation: null,
+            type: "integer",
+            unique: false,
+            validation: null,
+            width: 4
+          }
+      }
+      fieldDispatch[this.relationInfoM2M[0].field_many] = {
+        collection: this.createM2MjunctionName,
+        field: this.relationInfoM2M[0].field_many,
+        datatype: "int",
+        unique: false,
+        primary_key: false,
+        auto_increment: false,
+        default_value: null,
+        note: null,
+        signed: true,
+        type: "integer",
+        sort: 0,
+        interface: null,
+        hidden_detail: true,
+        hidden_browse: true,
+        required: true,
+        options: null,
+        locked: false,
+        translation: null,
+        readonly: false,
+        width: 4,
+        validation: null,
+        group: null,
+        length: 10
+      };
+      fieldDispatch[this.relationInfoM2M[1].field_many] = {
+        collection: this.createM2MjunctionName,
+        field: this.relationInfoM2M[1].field_many,
+        datatype: "int",
+        unique: false,
+        primary_key: false,
+        auto_increment: false,
+        default_value: null,
+        note: null,
+        signed: true,
+        type: "integer",
+        sort: 0,
+        interface: null,
+        hidden_detail: true,
+        hidden_browse: true,
+        required: true,
+        options: null,
+        locked: false,
+        translation: null,
+        readonly: false,
+        width: 4,
+        validation: null,
+        group: null,
+        length: 10
+      };
+      this.$api
+        .createCollection(
+            collectionData,
+            {
+              fields: "*"
             }
-          });
-        })
-        .catch(error => {
-          this.$events.emit("error", {
-            notify: this.$t("something_went_wrong_body"),
-            error
-          });
-        })
+          )
+          .then(res => res.data)
+          .then(collection => {
+            this.$store.dispatch("addCollection", {
+              ...collection,
+              fields: fieldDispatch
+            });
+            this.$store.dispatch("addPermission", {
+              collection: this.createM2MjunctionName,
+              permission: {
+                $create: defaultFull,
+                ...defaultFull
+              }
+            });
+          })
+          .catch(error => {
+            this.$events.emit("error", {
+              notify: this.$t("something_went_wrong_body"),
+              error
+            });
+          })
     }
   }
 };
