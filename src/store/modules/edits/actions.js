@@ -54,7 +54,9 @@ export function save({ commit, state, rootState }, overrides) {
   }
 
   return api
-    .updateItem(info.collection, info.primaryKey, info.values)
+    .patch("/items/" + info.collection + "/" + info.primaryKey, info.values, {
+      fields: "*.*.*.*"
+    })
     .then(res => {
       commit(ITEM_CREATED);
       return res;
