@@ -1468,7 +1468,7 @@ export default {
         .createCollection(
             collectionData,
             {
-              fields: "*"
+              fields: "*.*"
             }
           )
           .then(res => res.data)
