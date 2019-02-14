@@ -363,8 +363,8 @@ export default {
     },
     lazyLoad() {
       if (this.items.lazyLoading) return;
-      //if (this.items.meta.total_count === this.items.data.length) return;
-      if (this.items.page * this.formatParams().limit > this.items.data.length) return;
+      if ((this.items.meta.total_count === this.items.data.length)
+        || (this.items.page * 50 > this.items.data.length)) return;
 
       this.items.lazyLoading = true;
       this.items.error = null;
