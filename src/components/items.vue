@@ -374,6 +374,7 @@ export default {
       return this.$api
         .getItems(this.collection, this.formatParams())
         .then(res => {
+          if (res.data.length < 50) this.items.page = this.items.page + 1;
           this.items.lazyLoading = false;
 
           if (this.links) {
