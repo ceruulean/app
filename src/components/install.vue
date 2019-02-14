@@ -41,6 +41,14 @@
           />
         </label>
         <label>
+          {{ $t("app_url") }}
+          <v-input
+            class="input"
+            id="app_url"
+            v-model="values.app_url"
+          />
+        </label>
+        <label>
           {{ $t("admin_password") }}
           <v-input
             class="input"
@@ -120,6 +128,7 @@ export default {
         user_email: null,
         user_password: null,
         project_name: "Directus",
+        app_url: null,
         cors_enabled: true
       }
     };
