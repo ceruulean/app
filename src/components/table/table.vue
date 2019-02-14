@@ -339,20 +339,20 @@ export default {
       return this.$emit("select", primaryKeyFields);
     },
     updateSort(field, direction) {
-      this.manualSorting = false;
 
-      if (direction) {
-        const newSortVal = {
-          field,
-          asc: direction === "asc"
-        };
-        return this.$emit("sort", newSortVal);
-      }
-
-      const newSortVal = {
+      var newSortVal = {
         field,
         asc: field === this.sortVal.field ? !this.sortVal.asc : "ASC"
       };
+
+      if ((field == this.manualSortField) && this.manualSorting) {
+      } else {
+        this.manualSorting = false;
+      }
+
+      if (direction) {
+        newSortVal.asc = (direction === "asc")
+      }
 
       this.$emit("sort", newSortVal);
     },
@@ -412,7 +412,6 @@ export default {
         return;
       }
 
-      this.updateSort(this.manualSortField, "asc");
       this.manualSorting = true;
     },
     startSort() {
