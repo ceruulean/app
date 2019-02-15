@@ -105,7 +105,7 @@
     <v-button @click="startEditingField({})" class="new-field"
       >New Field</v-button
     >
-
+<v-fields-arranger :fields="fields">test</v-fields-arranger>
     <v-form
       v-if="fields"
       :fields="directusFields"
@@ -162,6 +162,7 @@ import api from "../../api.js";
 import NotFound from "../not-found.vue";
 import VFieldSetup from "../../components/field-setup.vue";
 import VFieldDuplicate from "../../components/field-duplicate.vue";
+import VFieldsArranger from "../../components/fields-arranger.vue";
 
 export default {
   name: "settings-fields",
@@ -175,7 +176,8 @@ export default {
   components: {
     NotFound,
     VFieldSetup,
-    VFieldDuplicate
+    VFieldDuplicate,
+    VFieldsArranger
   },
   props: {
     collection: {
