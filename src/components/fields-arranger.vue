@@ -1,15 +1,43 @@
 <template>
-<div class="grid" @click="log">
+<div>
+  <v-checkbox
+    id="showGuidesCol"
+    :checked="showGuidesCol"
+    label="Show column guides"
+    @change="showGuidesCol = !showGuidesCol"
+    value="showGuidesCol"
+  />
+  <v-checkbox
+    id="showGuidesBound"
+    :checked="showGuidesBound"
+    label="Show boundary guides"
+    @change="showGuidesBound = !showGuidesBound"
+    value="showGuidesBound"
+  />
+  <v-checkbox
+    id="RTL"
+    :checked="RTL"
+    label="Right to Left"
+    @change="RTL = !RTL"
+    value="RTL"
+  />
 
-<div v-for="field in fields" :key="field.id">
-<div v-if="(field.interface != 'primary-key')"
-  class="v-field"
+<div :class="{
+  'grid' : true,
+  'guideColumn' : showGuidesCol,
+  'RTL' : RTL,
+  }"
+  @click="log"
+  >
+
+<div v-for="field in fieldsNoPrimary" :key="field.id">
+<div :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
    :draggable="!isDraggingWidth"
    :style="width(field)"
    >
 
     <component :is="fieldset(field.interface) ? 'fieldset' : 'p'">
-      <div>
+
         <div class="heading">
           <!-- template v-if="hideLabel === false" -->
             <div class="label">
@@ -39,7 +67,7 @@
             v-html="$helpers.snarkdown(field.note)"
           />
         </div>
-      </div>
+        
   <div class="interface">
 
       <v-ext-input
@@ -51,9 +79,8 @@
         :required="field.required"
         :loading="field.loading"
         :options="field.options"
-        :new-item="field.newItem"
-        :relation="field.relation"
-        :fields="field.fields"
+        :relation="dummyRelation(field)"
+        :fields="fieldsNoPrimary"
         :values="field.values"
 
         :class="{
@@ -67,19 +94,27 @@
   </div>
    </component>
 
-  <div class="drag-handle"
-  draggable="true"
-  @dragstart="dragStart($event)"
-  @drag="drag($event)"
-  @dragend="dragEnd(field.field, $event)">
-  </div>
-</div>
+      <div class="drag-handle right"
+        draggable="true"
+        @dragstart="dragStart($event, true)"
+        @drag="drag($event, true)"
+        @dragend="dragEnd(field.field, $event, true)">
+      </div>
 
+      <div class="drag-handle left"
+        draggable="true"
+        @dragstart="dragStart($event,false)"
+        @drag="drag($event,false)"
+        @dragend="dragEnd(field.field, $event,false)">
+      </div>
+
+</div>
 
 
 </div>
 
 </div> <!--grid -->
+</div>
 </template>
 
 <script>
@@ -111,42 +146,70 @@ export default {
       yPos1:null,
       targetField:null,
       elementWidth: 0,
+
       widths: {},
+      sortOrder: {},
+
+      showGuidesCol: true,
+      showGuidesBound: true,
+
+      RTL: false,
     }
   },
   computed: {
-    
+    fieldsNoPrimary() {
+      return this.fields.filter(e => e.interface != 'primary-key');
+    }
   },
   methods: {
-    drag(e){
+    drag(e, R){
 
-       this.xPos2 = (e.clientX || e.screenX);
-       if (this.xPos2 != 0) {
-        var delta = this.xPos2 - this.xPos1;
-        var wtf = this.elementWidth + delta;
+        this.xPos2 = (e.screenX);
 
-        e.target.parentElement.style="width:"+ wtf +"px;max-width:(--width-x-large);"
-        this.elementWidth = e.target.parentElement.clientWidth;
-        this.xPos1 = this.xPos2;
+          if (this.xPos2 != 0) {
+          var delta = (this.xPos2 - this.xPos1) * (R ? 1 : -1); // Left side delta is opposite of right
+          var wtf = this.elementWidth + delta;
+
+          console.log(e.target.parentElement);
+
+          e.target.parentElement.style="width:"+ wtf +"px;max-width:(--width-x-large);"
+          this.elementWidth = e.target.parentElement.clientWidth;
+          this.xPos1 = this.xPos2;
        }
-
     },
-    dragStart(e){
-      e.target.parentElement.dataset.focus = "true";
-      this.elementWidth = e.target.parentElement.clientWidth;
-      this.initialX = this.xPos1 = (e.clientX || e.screenX);
-      this.initialY = this.xPos2 = (e.clientY || e.screenY);
-            this.isDraggingWidth = true;
+    dragStart(e, R){
+      this.isDraggingWidth = true;
+      e.dataTransfer.setData('Text', 'node'); // Firefox...
+      e.dataTransfer.effectAllowed = "move";
+
+        e.target.parentElement.dataset.focus = "true";
+        this.elementWidth = e.target.parentElement.clientWidth;
+        this.initialX = this.xPos1 = (e.clientX || e.screenX);
+        this.initialY = this.xPos2 = (e.clientY || e.screenY);
+
+      if (!R) {// left handlebar
+        e.target.parentElement.parentElement.style = "margin-left: auto;"
+       // e.target.parentElement.parentElement.style = "margin:0 auto;"
+      } else if (R && RTL) {
+        e.target.parentElement.parentElement.style = "margin-right: auto;"
+      }
     },
-    dragEnd(fieldName, e) {
-      this.xPos2 = (e.clientX || e.screenX);
-      var delta = this.xPos2 - this.xPos1;
+    dragEnd(fieldName, e, R) {
+        this.xPos2 = (e.clientX || e.screenX);
+        var delta = this.xPos2 - this.xPos1;
+        
+        if (!R) { // left side handlebar
+          e.target.parentElement.parentElement.style = null;
+          delta *= -1;
+        }
 
-      var final = e.target.parentElement.clientWidth + delta;
-      e.target.parentElement.style="width:var(--width-"+ this.pixelToWidth(final) +");max-width:(--width-x-large);"
-      e.target.parentElement.dataset.focus = null;
 
-      this.widths[fieldName] =  final;
+        var final = e.target.parentElement.clientWidth + delta;
+        e.target.parentElement.style="width:var(--width-"+ this.pixelToWidth(final) +");max-width:(--width-x-large);"
+        e.target.parentElement.dataset.focus = null;
+
+        this.widths[fieldName] =  final;
+//console.log(final + "Rightside?" + R);
       this.isDraggingWidth = false;
     },
     log() {
@@ -210,6 +273,21 @@ export default {
       } else {
         return false;
       }
+    },
+    dummyRelation(field) {
+        switch (field.type.toLowerCase()) {
+          case "m2m":
+          case "o2m":
+          case "translation":
+            return {"filler":"error"};
+            break;
+          default:
+            return null;
+            break;
+        }
+    },
+    sortInit(field){
+      this.sortOrder[field.field] = field.sort;
     }
   }
 };
@@ -227,13 +305,20 @@ export default {
   max-width:calc(var(--width-x-large) + 30px);
 
   color: var(--light-gray);
-  background-image:
-    linear-gradient(to right, transparent,
-    transparent 159px,
-    var(--lightest-gray) 159px,
-    var(--lightest-gray));
-    background-size:161px 170px;
 
+  &.guideColumn {
+    background-size:161px 170px;
+    background-image:
+      linear-gradient(to right, transparent,
+      transparent 159px,
+      var(--lightest-gray) 159px,
+      var(--lightest-gray));
+  }
+
+  &.RTL{
+    text-align: right;
+    flex-flow:row-reverse wrap;
+  }
 }
 
 .col {
@@ -249,16 +334,18 @@ export default {
   height: 100%;
   cursor: col-resize;
   position: absolute;
-  right:-3px;
+
   bottom:0;
   opacity: 0;
   transition: opacity var(--fast) var(--transition-out);
-}
 
-.border {
-  background-size: 170px 10px;
-  background-image:
-  linear-gradient(180deg, transparent, transparent 50%, #AAA 50%, #AAA);
+  &.right {
+   right:-3px;
+  }
+
+  &.left{
+    left:-3px;
+  }
 }
 
 i {
@@ -273,17 +360,23 @@ i {
   margin:0 8px 50px 8px;
   border:2px transparent solid;
   box-sizing:content-box;
+  opacity:0.6;
 
   &:hover, &:focus, &:active {
-  opacity:0.7;
-    border:2px var(--lighter-gray) dashed;
+  opacity:1;
+
   }
 
   &[data-focus="true"]{
-    opacity:0.7;
+    opacity:1;
     border:2px var(--light-gray) dashed;
     border-collapse:separate;
   }
+}
+
+.guideBound{
+  border-color: var(--lighter-gray);
+  border-style: dashed;
 }
 
 .interface {
@@ -296,13 +389,14 @@ i {
 }
 
 .v-input {
+  /*
     -khtml-user-select: none;
     -webkit-user-select: none;
     -moz-user-select: -moz-none;
     -ms-user-select: none;
     -o-user-select: none;
     user-select: none;
-    outline: none;
+    outline: none; */
 
   &.small {
     max-width:var(--width-small) !important;
