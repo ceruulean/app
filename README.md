@@ -76,7 +76,7 @@ If you believe you've found a bug in the Directus Core codebase, please submit n
 
 ### Community Discussions
 
-Join us on [Slack](https://slack.getdirectus.com) to talk to hundreds of members of the Directus community.
+Join us on [Slack](https://slack.directus.io) to talk to hundreds of members of the Directus community.
 
 ### Updates & Social
 
@@ -88,7 +88,7 @@ Feature requests are managed as GitHub issues within the appropriate Directus re
 
 ### Contributing
 
-We love pull-requests! To work on Directus you'll need to install it locally from source by following the instructions below. Submit all pull-requests to the `development` branch of our `api` and `app` repositories.
+We love pull-requests! To work on Directus you'll need to install it locally from source by following the instructions below. Submit all pull-requests to the `master` branch of our `api` and `app` repositories.
 
 * [Setup API Development Environment](https://docs.directus.io/advanced/source.html#api-source)
 * [Setup App Development Environment](https://docs.directus.io/advanced/source.html#application-source)
