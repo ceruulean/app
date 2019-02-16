@@ -33,14 +33,14 @@
 <div v-for="field in fieldsNoPrimary" :key="field.id"
   :ref="ref(field.id)">
 <div :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
-   :draggable="!isDraggingWidth"
+   draggable
    :style="width(field)"
    >
 
     <component :is="fieldset(field.interface) ? 'fieldset' : 'p'">
 
         <div class="heading">
-          <!-- template v-if="hideLabel === false" -->
+          <template v-if="!hideLabel(field.interface)">
             <div class="label">
               <component :is="fieldset(field.interface) ? 'legend' : 'label'" :for="field.field">
                 {{ field.name || $helpers.formatTitle(field.field)
@@ -62,7 +62,7 @@
               </label>
       -->
             </div>
-          <!-- /template -->
+          </template>
           <small
             v-if="field.note"
             v-html="$helpers.snarkdown(field.note)"
@@ -96,18 +96,17 @@
    </component>
 
       <div class="drag-handle right"
-        draggable="true"
+        draggable
         @dragstart="dragStart($event, ref(field.id), true)"
         @drag="drag($event, true)"
         @dragend="dragEnd($event, field.field, ref(field.id), true)">
       </div>
 
       <div class="drag-handle left"
-        draggable="true"
+        draggable
         @dragstart="dragStart($event, ref(field.id), false)"
-        @drag="drag($event,false)"
-        @dragend="dragEnd($event, field.field, ref(field.id), false)"
-        >
+        @drag="drag($event, false)"
+        @dragend="dragEnd($event, field.field, ref(field.id), false)">
       </div>
 
 </div>
@@ -149,6 +148,7 @@ export default {
       yPos1:null,
       targetField:null,
       elementWidth: 0,
+      waiter:false,
 
       widths: {},
       sortOrder: {},
@@ -162,11 +162,10 @@ export default {
   computed: {
     fieldsNoPrimary() {
       return this.fields.filter(e => e.interface != 'primary-key');
-    }
+    },
   },
   methods: {
     drag(e, R){
-
         this.xPos2 = (e.screenX);
 
           if (this.xPos2 != 0) {
@@ -181,13 +180,6 @@ export default {
        }
     },
     dragStart(e, parentReference, R){
-
-      setTimeout(this.dragHandler(e, parentReference, R), 100);
-
-    },
-    dragHandler(e, parentReference, R) {
- //  alert("wtf");
-      console.log(this);
       this.isDraggingWidth = true;
       e.dataTransfer.setData('Text', 'node'); // Firefox...
       e.dataTransfer.effectAllowed = "move";
@@ -202,7 +194,6 @@ export default {
       } else if (R && this.RTL) {
         this.$refs[parentReference][0].style = "margin-right: auto;"
       }
-
     },
     dragEnd(e, fieldName, parentReference, R) {
         this.xPos2 = (e.clientX || e.screenX);
@@ -216,8 +207,7 @@ export default {
         e.target.parentElement.style="width:var(--width-"+ this.pixelToWidth(final) +");max-width:(--width-x-large);"
         e.target.parentElement.dataset.focus = "false";
 
-        this.widths[fieldName] =  final;
-//console.log(final + "Rightside?" + R);
+      this.widths[fieldName] =  final;
       this.isDraggingWidth = false;
       console.log('end');
     },
@@ -273,6 +263,19 @@ export default {
 
       return (interfaceInfo && interfaceInfo.fieldset) || false;
     },
+    hideLabel(fieldName) {
+      const interfaceName = fieldName;
+      const interfaceMeta = this.$store.state.extensions.interfaces[
+        interfaceName
+      ];
+
+      if (!interfaceMeta) return false;
+
+      if (interfaceMeta && interfaceMeta.hideLabel)
+        return interfaceMeta.hideLabel;
+
+      return false;
+    },
     optionWidth(field) {
       if (field.options == null) {return false};
       if (Object.keys(field.options).length > 0) {
@@ -326,11 +329,6 @@ export default {
       var(--lightest-gray) 159px,
       var(--lightest-gray));
   }
-
-  &.RTL{
-   /* text-align: right;
-    flex-flow:row-reverse wrap;*/
-  }
 }
 
 .col {
@@ -349,7 +347,6 @@ export default {
 
   bottom:0;
   opacity: 0;
-  transition: opacity var(--fast) var(--transition-out);
 
   &.right {
    right:-3px;
@@ -373,13 +370,14 @@ i {
   border:2px transparent solid;
   box-sizing:content-box;
   opacity:0.6;
+  transition: opacity var(--fast) var(--transition-out);
 
   &:hover, &:focus, &:active {
   opacity:1;
 
   }
 
-  &[data-focus="true"]{
+  &[data-focus="true"] {
     opacity:1;
     border:2px var(--accent) dashed;
     border-collapse:separate;
