@@ -17,7 +17,7 @@
   <v-checkbox
     id="RTL"
     :checked="RTL"
-    label="Right to Left"
+    label="Right to Left (need dir='rtl' in html tag)"
     @change="RTL = !RTL"
     value="RTL"
   />
@@ -30,7 +30,8 @@
   @click="log"
   >
 
-<div v-for="field in fieldsNoPrimary" :key="field.id">
+<div v-for="field in fieldsNoPrimary" :key="field.id"
+  :ref="ref(field.id)">
 <div :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
    :draggable="!isDraggingWidth"
    :style="width(field)"
@@ -80,7 +81,7 @@
         :loading="field.loading"
         :options="field.options"
         :relation="dummyRelation(field)"
-        :fields="fieldsNoPrimary"
+        :fields="fields"
         :values="field.values"
 
         :class="{
@@ -96,16 +97,17 @@
 
       <div class="drag-handle right"
         draggable="true"
-        @dragstart="dragStart($event, true)"
+        @dragstart="dragStart($event, ref(field.id), true)"
         @drag="drag($event, true)"
-        @dragend="dragEnd(field.field, $event, true)">
+        @dragend="dragEnd($event, field.field, ref(field.id), true)">
       </div>
 
       <div class="drag-handle left"
         draggable="true"
-        @dragstart="dragStart($event,false)"
+        @dragstart="dragStart($event, ref(field.id), false)"
         @drag="drag($event,false)"
-        @dragend="dragEnd(field.field, $event,false)">
+        @dragend="dragEnd($event, field.field, ref(field.id), false)"
+        >
       </div>
 
 </div>
@@ -139,6 +141,7 @@ export default {
   data() {
     return {
       isDraggingWidth: false,
+      mousedown: false,
       initialX: null,
       initialY: null,
       xPos1:null,
@@ -170,14 +173,21 @@ export default {
           var delta = (this.xPos2 - this.xPos1) * (R ? 1 : -1); // Left side delta is opposite of right
           var wtf = this.elementWidth + delta;
 
-          console.log(e.target.parentElement);
+         // console.log(e.target.parentElement);
 
           e.target.parentElement.style="width:"+ wtf +"px;max-width:(--width-x-large);"
           this.elementWidth = e.target.parentElement.clientWidth;
           this.xPos1 = this.xPos2;
        }
     },
-    dragStart(e, R){
+    dragStart(e, parentReference, R){
+
+      setTimeout(this.dragHandler(e, parentReference, R), 100);
+
+    },
+    dragHandler(e, parentReference, R) {
+ //  alert("wtf");
+      console.log(this);
       this.isDraggingWidth = true;
       e.dataTransfer.setData('Text', 'node'); // Firefox...
       e.dataTransfer.effectAllowed = "move";
@@ -188,29 +198,28 @@ export default {
         this.initialY = this.xPos2 = (e.clientY || e.screenY);
 
       if (!R) {// left handlebar
-        e.target.parentElement.parentElement.style = "margin-left: auto;"
-       // e.target.parentElement.parentElement.style = "margin:0 auto;"
-      } else if (R && RTL) {
-        e.target.parentElement.parentElement.style = "margin-right: auto;"
+        this.$refs[parentReference][0].style = "margin-left: auto;";
+      } else if (R && this.RTL) {
+        this.$refs[parentReference][0].style = "margin-right: auto;"
       }
-    },
-    dragEnd(fieldName, e, R) {
-        this.xPos2 = (e.clientX || e.screenX);
-        var delta = this.xPos2 - this.xPos1;
-        
-        if (!R) { // left side handlebar
-          e.target.parentElement.parentElement.style = null;
-          delta *= -1;
-        }
 
+    },
+    dragEnd(e, fieldName, parentReference, R) {
+        this.xPos2 = (e.clientX || e.screenX);
+        var delta = (this.xPos2 - this.xPos1) * (R ? 1 : -1);
+        
+        if (!R || this.RTL) { // left side handlebar
+         this.$refs[parentReference][0].style = null;
+        }
 
         var final = e.target.parentElement.clientWidth + delta;
         e.target.parentElement.style="width:var(--width-"+ this.pixelToWidth(final) +");max-width:(--width-x-large);"
-        e.target.parentElement.dataset.focus = null;
+        e.target.parentElement.dataset.focus = "false";
 
         this.widths[fieldName] =  final;
 //console.log(final + "Rightside?" + R);
       this.isDraggingWidth = false;
+      console.log('end');
     },
     log() {
     console.log(this.fields);
@@ -288,6 +297,9 @@ export default {
     },
     sortInit(field){
       this.sortOrder[field.field] = field.sort;
+    },
+    ref(id){
+      return "field-"+id;
     }
   }
 };
@@ -316,8 +328,8 @@ export default {
   }
 
   &.RTL{
-    text-align: right;
-    flex-flow:row-reverse wrap;
+   /* text-align: right;
+    flex-flow:row-reverse wrap;*/
   }
 }
 
@@ -369,7 +381,7 @@ i {
 
   &[data-focus="true"]{
     opacity:1;
-    border:2px var(--light-gray) dashed;
+    border:2px var(--accent) dashed;
     border-collapse:separate;
   }
 }
