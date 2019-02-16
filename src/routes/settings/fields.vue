@@ -105,7 +105,11 @@
     <v-button @click="startEditingField({})" class="new-field"
       >New Field</v-button
     >
-<v-fields-arranger :fields="fields">test</v-fields-arranger>
+<v-fields-arranger
+:fields="fields"
+:collection="collection"
+  @edit="startEditingField">test
+  </v-fields-arranger>
     <v-form
       v-if="fields"
       :fields="directusFields"

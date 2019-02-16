@@ -1,5 +1,12 @@
 <template>
-<div>
+  <v-error
+    v-if="groupedFields.length === 0"
+    :title="$t('no_fields')"
+    :body="$t('no_fields_body')"
+    icon="error_outline"
+  />
+  <form v-else class="v-form flex-group" @submit.prevent>
+
   <v-checkbox
     id="showGuidesCol"
     :checked="showGuidesCol"
@@ -22,48 +29,111 @@
     value="RTL"
   />
 
-  <v-checkbox v-if="mode == 'group'"
+  <v-checkbox
     id="modeGroup"
     :label="mode"
     value="modeGroup"
     @change="mode = 'sort'"
   />
 
-  <v-checkbox v-if="mode == 'sort'"
+  <v-checkbox
     id="modeSort"
     :label="mode"
     value="modeSort"
     @change="mode = 'group'"
   />
-
-<!-- <div :class="{
+  
+  <draggable v-model="sortOrder"
+  :options="{chosenClass:'focus', sort: !isDraggingWidth}"
+  :class="{
   'grid' : true,
   'guideColumn' : showGuidesCol,
   'RTL' : RTL,
   }"
   @click="log"
-  > -->
-
-<draggable v-model="sortOrder"
- :class="{
-  'grid' : true,
-  'guideColumn' : showGuidesCol,
-  'RTL' : RTL,
-  }"
-  @click="log"
-  @start="startSort"
+  @start="startDrag"
   @end="saveSort"
   >
-<div v-for="field in sortOrder" :key="field.id"
+  <div :ref="ref(field.id)" :class="{'outer': true}"
+    v-for="field in sortOrder"
+      :key="field.field">
+    <div
+      :class="[
+        'inner',
+        isGroup(field) ? null : `col-${field.width || 4}`,
+        isGroup(field) ? 'group' : 'field',
+        {'guideBound': showGuidesBound}
+      ]"
+   :style="width(field)"
+   @click="clickField(field)"
+
+    >
+      <v-group
+        v-if="isGroup(field)"
+        :values="{}"
+        :field="field"
+        :readonly="true"
+        :batch-mode="false"
+        :new-item="false"
+      />
+    <!--@activate="activateField"
+        @deactivate="deactivateField"
+        @stage-value="$emit('stage-value', $event)" -->
+      <v-field
+        v-else
+        :name="uniqueID + '-' + field.field"
+        :field="field"
+        :values="{}"
+        :fields="{fields}"
+        :readonly="true"
+        :blocked="false"
+        :batch-mode="false"
+        :new-item="false"
+
+        :class="{
+          'small' : (optionWidth(field) === 'small'),
+          'medium' : (optionWidth(field) === 'medium'),
+          'large' : (optionWidth(field) === 'large'),
+          'auto' : (optionWidth(field) === 'auto'),
+        }"
+      />
+      <!--         @activate="activateField"
+        @deactivate="deactivateField"
+        @stage-value="$emit('stage-value', $event)" -->
+   
+
+      <div class="drag-handle right"
+        draggable
+        @dragstart="dragStart($event, ref(field.id), true)"
+        @drag="drag($event, true)"
+        @dragend="dragEnd($event, field.field, ref(field.id), true)">
+      </div>
+
+      <div class="drag-handle left"
+        draggable
+        @dragstart="dragStart($event, ref(field.id), false)"
+        @drag="drag($event, false)"
+        @dragend="dragEnd($event, field.field, ref(field.id), false)">
+      </div>
+
+
+    </div>
+
+
+</div>
+
+  </draggable>
+</form>
+
+<!-- <div v-for="field in sortOrder" :key="field.id"
   :ref="ref(field.id)"
   :class="{'hidden' : (field.hidden_detail == 'true' || field.hidden_detail == 1)}"
   >
-<div :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
+<div v-if="!(field.hidden_detail)"
+  :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
    draggable
    :style="width(field)"
-   @drag="fieldDrag(field)"
-   @dragover="fieldDragOver"
-   @dragenter="fieldDragEnter"
+   @click="clickField(field)"
    >
 
     <component :is="fieldset(field.interface) ? 'fieldset' : 'p'">
@@ -80,7 +150,7 @@
                   >star</i
                 >
               </component>
-      <!--
+
               <label v-if="false" class="batch-label">
                 <v-toggle
                   :value="!blocked"
@@ -89,7 +159,7 @@
                   "
                 />
               </label>
-      -->
+
             </div>
           </template>
           <small
@@ -110,7 +180,7 @@
         :required="field.required"
         :options="field.options"
         :relation="dummyRelation(field)"
-        :fields="fields"
+        :fields="{...fields}"
         :value="null"
 
         :class="{
@@ -150,22 +220,24 @@
         @dragend="dragEnd($event, field.field, ref(field.id), false)">
       </div>
 
-</div>
+</div> -->
 
-
-</div>
-</draggable>
  <!--</div> grid -->
-</div>
 </template>
 
 <script>
 import VField from "./form/field.vue"
+import VGroup from "./form/group.vue";
+import VError from "./error.vue";
+import VForm from "./form/form.vue";
+import { defaultFull } from "../store/modules/permissions/defaults";
 
 export default {
   name: "v-fields-arranger",
   components:{
-    VField
+    VField,
+    VGroup,
+    VError
   },
   metaInfo() {
     return {
@@ -173,7 +245,14 @@ export default {
     }
   },
   props: {
-    fields: Array
+    fields: {
+      type: Array,
+      required: true
+    },
+    collection: {
+      type: String,
+      required: true
+    }
   },
   watch: {
     fields(n) {
@@ -195,6 +274,7 @@ export default {
 
       widths: {},
       sortOrder: null,
+      groups: null,
 
       showGuidesCol: true,
       showGuidesBound: true,
@@ -207,9 +287,58 @@ export default {
     }
   },
   computed: {
-
+    permissions() {
+      return defaultFull;
+    },
+    groupedFields() {
+          const fieldsArray = Object.values(this.fields).filter(
+            field =>
+              this.permissions.read_field_blacklist.includes(field.field) === false
+          );
+    
+          const result = fieldsArray
+            .filter(field => field.type && field.type.toLowerCase() === "group")
+            .map(group => ({
+              ...group,
+              children: []
+            }));
+    
+          const nonGroupFields = fieldsArray.filter(
+            field => field.type && field.type.toLowerCase() !== "group"
+          );
+    
+          nonGroupFields.forEach(field => {
+            if (field.group != null) {
+              const groupIndex = this.$lodash.findIndex(
+                result,
+                group => group.id === field.group
+              );
+              return result[groupIndex].children.push(field);
+            }
+    
+            return result.push(field);
+          });
+    console.log(result);
+          return result
+            .filter(
+              field => field.hidden_detail === false || field.hidden_detail == "0"
+            )
+            .sort((a, b) => {
+              if (a.sort == b.sort) return 0;
+              if (a.sort === null) return 1;
+              if (b.sort === null) return -1;
+              return a.sort > b.sort ? 1 : -1;
+            });
+    }
   },
   methods: {
+    isGroup(field) {
+      return field.children && Array.isArray(field.children);
+    },
+    clickField(field){
+      this.$emit("edit", field)
+      //console.log(field);
+    },
     changeMode(){
       if (this.mode == "sort") {
         this.mode = "group";
@@ -236,7 +365,6 @@ export default {
       e.dataTransfer.setData('Text', 'node'); // Firefox...
       e.dataTransfer.effectAllowed = "move";
 
-        e.target.parentElement.dataset.focus = "true";
         this.elementWidth = e.target.parentElement.clientWidth;
         this.initialX = this.xPos1 = (e.clientX || e.screenX);
         this.initialY = this.xPos2 = (e.clientY || e.screenY);
@@ -248,6 +376,7 @@ export default {
       }
     },
     dragEnd(e, fieldName, parentReference, R) {
+      this.isDraggingWidth = false;
         this.xPos2 = (e.clientX || e.screenX);
         var delta = (this.xPos2 - this.xPos1) * (R ? 1 : -1);
         
@@ -257,38 +386,27 @@ export default {
 
         var final = e.target.parentElement.clientWidth + delta;
         e.target.parentElement.style="width:var(--width-"+ this.pixelToWidth(final) +");max-width:(--width-x-large);"
-        e.target.parentElement.dataset.focus = "false";
 
       this.widths[fieldName] =  final;
-      this.isDraggingWidth = false;
       console.log('end');
     },
-    fieldDrag(field){
-      console.log(field.sort);
-    },
-    fieldDragOver(){
-      console.log('d')
-    },
-    fieldDragEnter(){
-      //todo
-    },
-    flexOrder(fieldName){
-      var s = this.$lodash.findKey(this.sortOrder, {"field" : fieldName});
-      console.log(s);
-     return "order:"+s+";";
-    },
     log() {
-   // console.log(this.fields);
-    console.log(this.sortOrder);
-    console.log(this.sortListPublic);
+      console.log(Object.values(this.sortOrder));
     },
-    startSort() {
-      //todo
+    startDrag(event) {
+      if (this.mode == "group") {
+        //todo
+       // console.log(event);
+      }
     },
     saveSort() {
-      this.sortOrder.forEach((item, index) => {
-        item.sort = index
-      });
+      if (this.mode == "sort") {
+        this.sortOrder.forEach((item, index) => {
+          item.sort = index
+        });
+      } else {
+        //todo
+      }
     },
     width(field) {
         var w = "";
@@ -386,7 +504,7 @@ export default {
       //     this.sortOrder[field.sort] = field;
       // });
       this.sortOrder = [];
-      this.fields.forEach(field => {
+      this.groupedFields.forEach(field => {
           this.sortOrder.push(field);
        });
 
@@ -475,7 +593,25 @@ p {
   flex-direction: column;
 }
 
-.v-field {
+// .outer{
+//   position:relative;
+//   box-sizing:content-box;
+//   border:2px transparent solid;
+//   border-collapse:collapse;
+
+//   &.guideBound {
+//   border-color: var(--lighter-gray);
+//   border-style: dashed;
+// }
+
+//   &.focus {
+//     opacity:1;
+//     border:2px var(--accent) solid;
+//     border-collapse:collapse;
+//   }
+// }
+
+.inner{
   position:relative;
   cursor:grab !important;
   margin:0 8px 50px 8px;
@@ -484,22 +620,48 @@ p {
   opacity:0.6;
   transition: opacity var(--fast) var(--transition-out);
 
+  max-width:100%;
+
   &:hover, &:focus, &:active {
   opacity:1;
-
   }
 
-  &[data-focus="true"] {
-    opacity:1;
-    border:2px var(--accent) dashed;
-    border-collapse:separate;
-  }
-}
-
-.guideBound{
+  &.guideBound {
   border-color: var(--lighter-gray);
   border-style: dashed;
+  }
 }
+
+.focus .inner {
+    opacity:1;
+    border:2px var(--accent) solid;
+    border-collapse:collapse;
+}
+
+// .field {
+//   position:relative;
+//   cursor:grab !important;
+//   margin:0 8px 50px 8px;
+//   border:2px transparent solid;
+//   opacity:0.6;
+//   transition: opacity var(--fast) var(--transition-out);
+
+//   &:hover, &:focus, &:active {
+//   opacity:1;
+
+//   }
+
+//   // &[data-focus="true"] {
+//   //   opacity:1;
+//   //   border:2px var(--accent) dashed;
+//   //   border-collapse:separate;
+//   // }
+// }
+
+
+
+
+
 
 .hidden{
   visibility:hidden;
@@ -516,29 +678,10 @@ p {
 }
 
 .v-input {
-  /*
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: -moz-none;
-    -ms-user-select: none;
-    -o-user-select: none;
-    user-select: none;
-    outline: none; */
-
-  &.small {
-    max-width:var(--width-small) !important;
-  }
-  &.medium {
-    max-width:var(--width-medium) !important;
-  }
-  &.large {
-    max-width:var(--width-large) !important;
-  }
-  &.auto {
-    max-width:initial !important;
-  }
 
 }
+
+
 
 
 small {
