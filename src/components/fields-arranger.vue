@@ -22,19 +22,48 @@
     value="RTL"
   />
 
-<div :class="{
+  <v-checkbox v-if="mode == 'group'"
+    id="modeGroup"
+    :label="mode"
+    value="modeGroup"
+    @change="mode = 'sort'"
+  />
+
+  <v-checkbox v-if="mode == 'sort'"
+    id="modeSort"
+    :label="mode"
+    value="modeSort"
+    @change="mode = 'group'"
+  />
+
+<!-- <div :class="{
   'grid' : true,
   'guideColumn' : showGuidesCol,
   'RTL' : RTL,
   }"
   @click="log"
-  >
+  > -->
 
-<div v-for="field in fieldsNoPrimary" :key="field.id"
-  :ref="ref(field.id)">
+<draggable v-model="sortOrder"
+ :class="{
+  'grid' : true,
+  'guideColumn' : showGuidesCol,
+  'RTL' : RTL,
+  }"
+  @click="log"
+  @start="startSort"
+  @end="saveSort"
+  >
+<div v-for="field in sortOrder" :key="field.id"
+  :ref="ref(field.id)"
+  :class="{'hidden' : (field.hidden_detail == 'true' || field.hidden_detail == 1)}"
+  >
 <div :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
    draggable
    :style="width(field)"
+   @drag="fieldDrag(field)"
+   @dragover="fieldDragOver"
+   @dragenter="fieldDragEnter"
    >
 
     <component :is="fieldset(field.interface) ? 'fieldset' : 'p'">
@@ -74,15 +103,15 @@
       <v-ext-input
         readonly
         :id="field.interface"
-        :name="field.interface"
+        :name="field.name"
         :type="field.type"
+        :datatype="field.datatype"
         :length="field.length"
         :required="field.required"
-        :loading="field.loading"
         :options="field.options"
         :relation="dummyRelation(field)"
         :fields="fields"
-        :values="field.values"
+        :value="null"
 
         :class="{
           'small' : (optionWidth(field) === 'small'),
@@ -91,7 +120,19 @@
           'auto' : (optionWidth(field) === 'auto'),
         }"
       />
-
+<span v-if="dummyStatus(field)" class="dummy-status">
+    <v-radio
+      v-for="(radio, key) in dummyRadios"
+      :id="'dummy'+key"
+      :name="radio.name"
+      :value="key"
+      :key="key"
+      disabled
+      :model-value="String(value)"
+      :label="$t(radio.name)"
+      :checked="false"
+    ></v-radio>
+</span>
   </div>
    </component>
 
@@ -113,8 +154,8 @@
 
 
 </div>
-
-</div> <!--grid -->
+</draggable>
+ <!--</div> grid -->
 </div>
 </template>
 
@@ -134,8 +175,10 @@ export default {
   props: {
     fields: Array
   },
-  mounted: function(){
-
+  watch: {
+    fields(n) {
+      if (n != null) {this.sortInit(this.fields);}
+    }
   },
   data() {
     return {
@@ -151,20 +194,29 @@ export default {
       waiter:false,
 
       widths: {},
-      sortOrder: {},
+      sortOrder: null,
 
       showGuidesCol: true,
       showGuidesBound: true,
 
       RTL: false,
+
+      dummyRadios: null,
+
+      mode: "sort", // other option is "group" for creating groups
     }
   },
   computed: {
-    fieldsNoPrimary() {
-      return this.fields.filter(e => e.interface != 'primary-key');
-    },
+
   },
   methods: {
+    changeMode(){
+      if (this.mode == "sort") {
+        this.mode = "group";
+      } else{
+         this.mode = "sort";
+      }
+    },
     drag(e, R){
         this.xPos2 = (e.screenX);
 
@@ -211,8 +263,32 @@ export default {
       this.isDraggingWidth = false;
       console.log('end');
     },
+    fieldDrag(field){
+      console.log(field.sort);
+    },
+    fieldDragOver(){
+      console.log('d')
+    },
+    fieldDragEnter(){
+      //todo
+    },
+    flexOrder(fieldName){
+      var s = this.$lodash.findKey(this.sortOrder, {"field" : fieldName});
+      console.log(s);
+     return "order:"+s+";";
+    },
     log() {
-    console.log(this.fields);
+   // console.log(this.fields);
+    console.log(this.sortOrder);
+    console.log(this.sortListPublic);
+    },
+    startSort() {
+      //todo
+    },
+    saveSort() {
+      this.sortOrder.forEach((item, index) => {
+        item.sort = index
+      });
     },
     width(field) {
         var w = "";
@@ -298,8 +374,23 @@ export default {
             break;
         }
     },
-    sortInit(field){
-      this.sortOrder[field.field] = field.sort;
+    dummyStatus(field) {
+      if (field.type == "status") {
+        this.dummyRadios = field.options.status_mapping;
+        return true;
+      }
+      return false;
+    },
+    sortInit(){
+      // this.fields.filter(e => e.interface != 'primary-key').forEach(field => {
+      //     this.sortOrder[field.sort] = field;
+      // });
+      this.sortOrder = [];
+      this.fields.forEach(field => {
+          this.sortOrder.push(field);
+       });
+
+   // console.log(this.sortOrder);
     },
     ref(id){
       return "field-"+id;
@@ -357,11 +448,32 @@ export default {
   }
 }
 
+.dummy-status {
+
+  & > div{
+  display: inline-block;
+  margin-right: 40px;
+  margin-bottom: 20px;
+  }
+}
+
 i {
     color: var(--accent);
     vertical-align: super;
     font-size: 7px;
   }
+
+fieldset,
+p {
+  border: 0;
+  padding: 0;
+}
+
+fieldset > div,
+p {
+  display: flex;
+  flex-direction: column;
+}
 
 .v-field {
   position:relative;
@@ -387,6 +499,11 @@ i {
 .guideBound{
   border-color: var(--lighter-gray);
   border-style: dashed;
+}
+
+.hidden{
+  visibility:hidden;
+  display:none;
 }
 
 .interface {
