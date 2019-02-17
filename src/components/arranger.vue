@@ -5,7 +5,7 @@
     :options="field.options"
     :type="field.type"
     class="v-a-group flex-group"
-    :ref="ref(field.id)"
+    ref="appendN"
   >
       <div
         v-for="child in field.children"
@@ -14,7 +14,6 @@
           isGroup(child) ? 'group' : 'field'
         ]"
         :key="child.field"
-    ref="appendNode"
    :style="width(field)"
       >
         <v-a-group
@@ -38,14 +37,14 @@
       <div class="drag-handle right"
         draggable
         @dragstart="dragStart($event, ref(field.id), true)"
-        @drag="drag($event, true)"
+        @drag="dragWidth($event, true)"
         @dragend="dragEnd($event, field.field, ref(field.id), true)">
       </div>
 
       <div class="drag-handle left"
         draggable
         @dragstart="dragStart($event, ref(field.id), false)"
-        @drag="drag($event, false)"
+        @drag="dragWidth($event, false)"
         @dragend="dragEnd($event, field.field, ref(field.id), false)">
       </div>
 
@@ -86,6 +85,10 @@ export default {
     iteration: {
       type: Number,
       default: 0
+    },
+    drag: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -102,6 +105,12 @@ export default {
       isDraggingWidth: false,
     }
   },
+  watch: {
+    drag() {
+      console.log(this.$refs.appendN.$el);
+      this.$root.$emit("addNode", this.field.id, this.$refs.appendN.$el);
+    }
+  },
   methods: {
     isGroup(field) {
       return field.children && Array.isArray(field.children);
@@ -109,7 +118,7 @@ export default {
     click(){
       alert("hello");
     },
-    drag(e, R){
+    dragWidth(e, R){
         this.xPos2 = (e.screenX);
 
           if (this.xPos2 != 0) {
@@ -219,10 +228,11 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .group{
   position:relative;
   z-index: 1;
+  box-sizing:content-box;
 }
 
 .field {

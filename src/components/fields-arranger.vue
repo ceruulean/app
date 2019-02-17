@@ -38,8 +38,11 @@
   
   <draggable v-model="sortOrder"
   :options="{chosenClass:'focus',
-  disabled: isDragging,
-  sort: (mode == 'sort')}"
+  disabled: isDraggingWidth,
+  sort: (mode == 'sort'),
+  scroll:true,
+  scrollSensitivity:100
+  }"
   :class="{
   'grid' : true,
   'guideColumn' : showGuidesCol,
@@ -48,12 +51,13 @@
   @click="log"
   @start="startDrag"
   @end="saveSort"
-  @drop="drop($event, {type:'dropout'})"
   >
   <div :ref="ref(field.id)" :class="{'outer': true}"
     v-for="field in sortOrder"
       :key="field.field"
     draggable
+    @dragstart="dragField($event, field)"
+    @dragend="isDragging = false"
       >
     <div
       :class="[
@@ -64,11 +68,9 @@
       ]"
    :style="width(field)"
    @click="clickField(field)"
-    
     draggable
     @drop="drop($event, field)"
-    @dragstart="dragField($event, field)"
-    @dragend="isDragging = false"
+
     >
       <aGroup
         v-if="isGroup(field)"
@@ -76,8 +78,8 @@
         :field="field"
         :readonly="true"
         :mode="mode"
-        :new-item="false"
-        iteration="1"
+        :iteration="1"
+        :drag="isDragging"
       />
     <!--@activate="activateField"
         @deactivate="deactivateField"
@@ -153,6 +155,9 @@ export default {
       required: true
     }
   },
+  created(){
+      this.$root.$on('addNode', (i, n) => this.addNode(i,n));
+  },
   watch: {
     fields(n) {
       if (n != null) {
@@ -165,6 +170,7 @@ export default {
   data() {
     return {
       isDragging: false,
+      isDraggingWidth: false,
       mousedown: false,
       initialX: null,
       initialY: null,
@@ -237,6 +243,11 @@ export default {
     }
   },
   methods: {
+    addNode(id, node){
+      this.groups[id].insertnode = node;
+      console.log(this.groups[id].insertnode = node)
+      console.log(this.groups);
+    },
     isGroup(field) {
       return field.children && Array.isArray(field.children);
     },
@@ -266,7 +277,7 @@ export default {
        }
     },
     dragStart(e, parentReference, R){
-      this.isDragging = true;
+      this.isDraggingWidth = true;
       e.dataTransfer.setData('Text', 'node'); // Firefox...
       e.dataTransfer.effectAllowed = "move";
 
@@ -281,7 +292,7 @@ export default {
       }
     },
     dragEnd(e, fieldName, parentReference, R) {
-      this.isDragging = false;
+      this.isDraggingWidth = false;
         this.xPos2 = (e.clientX || e.screenX);
         var delta = (this.xPos2 - this.xPos1) * (R ? 1 : -1);
         
@@ -311,10 +322,10 @@ export default {
     },
     drop(event, field){
       if (this.mode == "group") {
-        if (field.type == "group" && !this.groups[field.id].includes(this.dragSource.id)) {
+        if (field.type == "group" && !this.groups[field.id].children.hasOwnProperty(this.dragSource.id)) {
           console.log("in");
-          this.groups[field.id] = [...this.groups[field.id], this.dragSource.id ];
-                event.target.appendChild(this.dragSource.node);
+          this.groups[field.id].children[this.dragSourceid] = this.dragSource.node;
+                (this.groups[field.id].insertnode).appendChild(this.dragSource.node);
         }
       }
     },
@@ -439,12 +450,15 @@ export default {
       var groupList = {};
       this.groupedFields.filter(f => f.type == "group")
         .forEach(gField => {
-          var children = [];
+          var children = {};
           gField.children.forEach(c => {
-            children.push(c.id)
+            children[c.id].push({});
           });
 
-          groupList[gField.id] = children;
+          groupList[gField.id] = {
+            "insertnode" : {},
+            "children": children,
+          }
        });
 
        this.groups = groupList; // groups[fieldID] : array of children's IDs
@@ -495,6 +509,8 @@ export default {
 
   bottom:0;
   opacity: 0;
+
+  z-index:10;
 
   &.right {
    right:-3px;
