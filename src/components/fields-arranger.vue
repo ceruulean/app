@@ -30,21 +30,16 @@
   />
 
   <v-checkbox
-    id="modeGroup"
+    id="mode"
     :label="mode"
-    value="modeGroup"
-    @change="mode = 'sort'"
-  />
-
-  <v-checkbox
-    id="modeSort"
-    :label="mode"
-    value="modeSort"
-    @change="mode = 'group'"
+    value="mode"
+    @change="changeMode()"
   />
   
   <draggable v-model="sortOrder"
-  :options="{chosenClass:'focus', sort: !isDraggingWidth}"
+  :options="{chosenClass:'focus',
+  disabled: isDragging,
+  sort: (mode == 'sort')}"
   :class="{
   'grid' : true,
   'guideColumn' : showGuidesCol,
@@ -53,10 +48,13 @@
   @click="log"
   @start="startDrag"
   @end="saveSort"
+  @drop="drop($event, {type:'dropout'})"
   >
   <div :ref="ref(field.id)" :class="{'outer': true}"
     v-for="field in sortOrder"
-      :key="field.field">
+      :key="field.field"
+    draggable
+      >
     <div
       :class="[
         'inner',
@@ -66,22 +64,27 @@
       ]"
    :style="width(field)"
    @click="clickField(field)"
-
+    
+    draggable
+    @drop="drop($event, field)"
+    @dragstart="dragField($event, field)"
+    @dragend="isDragging = false"
     >
-      <v-group
+      <aGroup
         v-if="isGroup(field)"
         :values="{}"
         :field="field"
         :readonly="true"
-        :batch-mode="false"
+        :mode="mode"
         :new-item="false"
+        iteration="1"
       />
     <!--@activate="activateField"
         @deactivate="deactivateField"
         @stage-value="$emit('stage-value', $event)" -->
       <v-field
         v-else
-        :name="uniqueID + '-' + field.field"
+        :name="field.id + '-' + field.field"
         :field="field"
         :values="{}"
         :fields="{fields}"
@@ -89,13 +92,6 @@
         :blocked="false"
         :batch-mode="false"
         :new-item="false"
-
-        :class="{
-          'small' : (optionWidth(field) === 'small'),
-          'medium' : (optionWidth(field) === 'medium'),
-          'large' : (optionWidth(field) === 'large'),
-          'auto' : (optionWidth(field) === 'auto'),
-        }"
       />
       <!--         @activate="activateField"
         @deactivate="deactivateField"
@@ -124,105 +120,6 @@
 
   </draggable>
 </form>
-
-<!-- <div v-for="field in sortOrder" :key="field.id"
-  :ref="ref(field.id)"
-  :class="{'hidden' : (field.hidden_detail == 'true' || field.hidden_detail == 1)}"
-  >
-<div v-if="!(field.hidden_detail)"
-  :class="{ 'v-field' : true, 'guideBound': showGuidesBound }"
-   draggable
-   :style="width(field)"
-   @click="clickField(field)"
-   >
-
-    <component :is="fieldset(field.interface) ? 'fieldset' : 'p'">
-
-        <div class="heading">
-          <template v-if="!hideLabel(field.interface)">
-            <div class="label">
-              <component :is="fieldset(field.interface) ? 'legend' : 'label'" :for="field.field">
-                {{ field.name || $helpers.formatTitle(field.field)
-                }}<i
-                  v-tooltip="$t('required')"
-                  class="material-icons"
-                  v-if="field.required === true || field.required === '1'"
-                  >star</i
-                >
-              </component>
-
-              <label v-if="false" class="batch-label">
-                <v-toggle
-                  :value="!blocked"
-                  @input="
-                    $emit(blocked ? 'activate' : 'deactivate', field.field)
-                  "
-                />
-              </label>
-
-            </div>
-          </template>
-          <small
-            v-if="field.note"
-            v-html="$helpers.snarkdown(field.note)"
-          />
-        </div>
-        
-  <div class="interface">
-
-      <v-ext-input
-        readonly
-        :id="field.interface"
-        :name="field.name"
-        :type="field.type"
-        :datatype="field.datatype"
-        :length="field.length"
-        :required="field.required"
-        :options="field.options"
-        :relation="dummyRelation(field)"
-        :fields="{...fields}"
-        :value="null"
-
-        :class="{
-          'small' : (optionWidth(field) === 'small'),
-          'medium' : (optionWidth(field) === 'medium'),
-          'large' : (optionWidth(field) === 'large'),
-          'auto' : (optionWidth(field) === 'auto'),
-        }"
-      />
-<span v-if="dummyStatus(field)" class="dummy-status">
-    <v-radio
-      v-for="(radio, key) in dummyRadios"
-      :id="'dummy'+key"
-      :name="radio.name"
-      :value="key"
-      :key="key"
-      disabled
-      :model-value="String(value)"
-      :label="$t(radio.name)"
-      :checked="false"
-    ></v-radio>
-</span>
-  </div>
-   </component>
-
-      <div class="drag-handle right"
-        draggable
-        @dragstart="dragStart($event, ref(field.id), true)"
-        @drag="drag($event, true)"
-        @dragend="dragEnd($event, field.field, ref(field.id), true)">
-      </div>
-
-      <div class="drag-handle left"
-        draggable
-        @dragstart="dragStart($event, ref(field.id), false)"
-        @drag="drag($event, false)"
-        @dragend="dragEnd($event, field.field, ref(field.id), false)">
-      </div>
-
-</div> -->
-
- <!--</div> grid -->
 </template>
 
 <script>
@@ -230,6 +127,7 @@ import VField from "./form/field.vue"
 import VGroup from "./form/group.vue";
 import VError from "./error.vue";
 import VForm from "./form/form.vue";
+import aGroup from "./arranger.vue";
 import { defaultFull } from "../store/modules/permissions/defaults";
 
 export default {
@@ -237,7 +135,8 @@ export default {
   components:{
     VField,
     VGroup,
-    VError
+    VError,
+    aGroup
   },
   metaInfo() {
     return {
@@ -256,12 +155,16 @@ export default {
   },
   watch: {
     fields(n) {
-      if (n != null) {this.sortInit(this.fields);}
+      if (n != null) {
+        this.sortInit(this.fields);
+        this.groupInit();
+        console.log(this.groups);
+      }
     }
   },
   data() {
     return {
-      isDraggingWidth: false,
+      isDragging: false,
       mousedown: false,
       initialX: null,
       initialY: null,
@@ -271,6 +174,8 @@ export default {
       targetField:null,
       elementWidth: 0,
       waiter:false,
+
+      dragSource: null,
 
       widths: {},
       sortOrder: null,
@@ -361,7 +266,7 @@ export default {
        }
     },
     dragStart(e, parentReference, R){
-      this.isDraggingWidth = true;
+      this.isDragging = true;
       e.dataTransfer.setData('Text', 'node'); // Firefox...
       e.dataTransfer.effectAllowed = "move";
 
@@ -376,7 +281,7 @@ export default {
       }
     },
     dragEnd(e, fieldName, parentReference, R) {
-      this.isDraggingWidth = false;
+      this.isDragging = false;
         this.xPos2 = (e.clientX || e.screenX);
         var delta = (this.xPos2 - this.xPos1) * (R ? 1 : -1);
         
@@ -389,6 +294,29 @@ export default {
 
       this.widths[fieldName] =  final;
       console.log('end');
+    },
+    dragField(event, field) {
+      if (this.isDragging) return;
+      this.isDragging = true;
+      this.dragSource ={
+          "id" : field.id,
+          "node" : event.target
+      } 
+      console.log(this.dragSource);
+    },
+    dropped(target, fieldID) {
+      this.groups[fieldID].push(this.dragSource.ID);
+      target.appendChild(this.dragSource.node);
+            console.log("transfered");
+    },
+    drop(event, field){
+      if (this.mode == "group") {
+        if (field.type == "group" && !this.groups[field.id].includes(this.dragSource.id)) {
+          console.log("in");
+          this.groups[field.id] = [...this.groups[field.id], this.dragSource.id ];
+                event.target.appendChild(this.dragSource.node);
+        }
+      }
     },
     log() {
       console.log(Object.values(this.sortOrder));
@@ -500,15 +428,26 @@ export default {
       return false;
     },
     sortInit(){
-      // this.fields.filter(e => e.interface != 'primary-key').forEach(field => {
-      //     this.sortOrder[field.sort] = field;
-      // });
+
       this.sortOrder = [];
       this.groupedFields.forEach(field => {
           this.sortOrder.push(field);
        });
 
-   // console.log(this.sortOrder);
+    },
+    groupInit(){
+      var groupList = {};
+      this.groupedFields.filter(f => f.type == "group")
+        .forEach(gField => {
+          var children = [];
+          gField.children.forEach(c => {
+            children.push(c.id)
+          });
+
+          groupList[gField.id] = children;
+       });
+
+       this.groups = groupList; // groups[fieldID] : array of children's IDs
     },
     ref(id){
       return "field-"+id;
@@ -548,7 +487,7 @@ export default {
   margin-right:20px;
 }
 
-.drag-handle {
+/deep/ .drag-handle {
   width: 10px;
   height: 100%;
   cursor: col-resize;
@@ -622,6 +561,11 @@ p {
 
   max-width:100%;
 
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
   &:hover, &:focus, &:active {
   opacity:1;
   }
@@ -638,31 +582,6 @@ p {
     border-collapse:collapse;
 }
 
-// .field {
-//   position:relative;
-//   cursor:grab !important;
-//   margin:0 8px 50px 8px;
-//   border:2px transparent solid;
-//   opacity:0.6;
-//   transition: opacity var(--fast) var(--transition-out);
-
-//   &:hover, &:focus, &:active {
-//   opacity:1;
-
-//   }
-
-//   // &[data-focus="true"] {
-//   //   opacity:1;
-//   //   border:2px var(--accent) dashed;
-//   //   border-collapse:separate;
-//   // }
-// }
-
-
-
-
-
-
 .hidden{
   visibility:hidden;
   display:none;
@@ -675,10 +594,11 @@ p {
   & button {
   margin-left:0 !important;
   }
-}
 
-.v-input {
-
+  /deep/ .v-ext-input {
+  cursor:grab !important;
+  pointer-events:none;
+  }
 }
 
 
