@@ -36,69 +36,16 @@
         </div>
       </div>
       <div class="body" :class="{ dragging }">
-        <draggable v-model="fields" @start="startSort" @end="saveSort">
-          <div class="row" v-for="field in fields" :key="field.field">
-            <div class="drag"><i class="material-icons">drag_handle</i></div>
-            <div class="inner row" @click.stop="startEditingField(field)">
-              <div>
-                {{ $helpers.formatTitle(field.field) }}
-                <i
-                  v-tooltip="$t('required')"
-                  class="material-icons required"
-                  v-if="field.required === true || field.required === '1'"
-                  >star</i
-                >
-                <i
-                  v-tooltip="$t('primary_key')"
-                  class="material-icons key"
-                  v-if="field.primary_key"
-                  >vpn_key</i
-                >
-              </div>
-              <div>
-                {{
-                  ($store.state.extensions.interfaces[field.interface] &&
-                    $store.state.extensions.interfaces[field.interface].name) ||
-                    "--"
-                }}
-              </div>
-            </div>
-            <v-popover
-              class="more-options"
-              placement="left-start"
-              v-if="canDuplicate(field.interface) || fields.length > 1"
-            >
-              <button type="button" class="menu-toggle">
-                <i class="material-icons">more_vert</i>
-              </button>
-              <template slot="popover">
-                <ul class="ctx-menu">
-                  <li>
-                    <button
-                      v-close-popover
-                      type="button"
-                      @click.stop="duplicateField(field)"
-                      :disabled="!canDuplicate(field.interface)"
-                    >
-                      <i class="material-icons">control_point_duplicate</i>
-                      {{ $t("duplicate") }}
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      v-close-popover
-                      :disabled="fields.length === 1"
-                      type="button"
-                      @click.stop="warnRemoveField(field.field)"
-                    >
-                      <i class="material-icons">close</i> {{ $t("delete") }}
-                    </button>
-                  </li>
-                </ul>
-              </template>
-            </v-popover>
-          </div>
-        </draggable>
+
+        <VSettingsFieldList
+          :fields="groupedFields"
+          @startSort="startSort"
+          @saveSort="saveSort"
+          @start-editing-field="startEditingField"
+          @duplicate-field="duplicateField"
+          @warn-remove-field="warnRemoveField"
+          />
+
       </div>
     </div>
 
@@ -162,6 +109,7 @@ import api from "../../api.js";
 import NotFound from "../not-found.vue";
 import VFieldSetup from "../../components/field-setup.vue";
 import VFieldDuplicate from "../../components/field-duplicate.vue";
+import VSettingsFieldList from "./fieldList.vue";
 
 export default {
   name: "settings-fields",
@@ -175,7 +123,8 @@ export default {
   components: {
     NotFound,
     VFieldSetup,
-    VFieldDuplicate
+    VFieldDuplicate,
+    VSettingsFieldList
   },
   props: {
     collection: {
@@ -198,6 +147,8 @@ export default {
 
       fields: null,
       directusFields: null,
+      groupedFields: null,
+      groups: null,
 
       notFound: false,
       error: false,
@@ -242,7 +193,7 @@ export default {
       return this.$store.state.collections[this.collection];
     },
     fieldsWithSort() {
-      return this.fields.map((field, index) => ({
+      return this.ungroupedFields.map((field, index) => ({
         ...field,
         sort: index + 1
       }));
@@ -252,9 +203,72 @@ export default {
         ...this.collectionInfo,
         ...this.edits
       };
+    },
+    ungroupedFields() {
+      var fieldsArray = Object.values(this.groupedFields);
+
+      fieldsArray
+        .filter(field => field.type && field.type.toLowerCase() === "group")
+        .forEach(field => {
+          var temp = field.children;
+          fieldsArray.push(...temp);
+          delete field.children;
+        })
+
+      console.log(fieldsArray);
+      return fieldsArray
+    },
+  },
+  watch:{
+    fields: {
+    deep: true,
+    handler() {
+      this.groupFields();
+      }
     }
   },
   methods: {
+    groupFields() {
+            console.log("Check")
+      console.log(this.fields);
+      const fieldsArray = Object.values(this.fields);
+      // .filter(
+      //   field =>
+      //     this.permissions.read_field_blacklist.includes(field.field) === false
+      // );
+
+      const result = fieldsArray
+        .filter(field => field.type && field.type.toLowerCase() === "group")
+        .map(group => ({
+          ...group,
+          children: []
+        }));
+
+      fieldsArray.forEach((field, index) => {
+        if (field.group != null) {
+          const groupIndex = this.$lodash.findIndex(
+            result,
+            group => group.id === field.group
+          );
+           console.log("push " +field.field+ "into [" + groupIndex)
+           fieldsArray.splice(index, 1);
+          return result[groupIndex].children.push(field);
+        }
+        return result.push(field);
+      });
+
+      this.groupedFields = result
+        // .filter(
+        //   field => field.hidden_detail === false || field.hidden_detail == "0"
+        // )
+        .sort((a, b) => {
+          if (a.sort == b.sort) return 0;
+          if (a.sort === null) return 1;
+          if (b.sort === null) return -1;
+          return a.sort > b.sort ? 1 : -1;
+        });
+
+      },
     remove() {
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
@@ -655,19 +669,6 @@ h2 {
     }
   }
 
-  .row {
-    display: flex;
-    align-items: center;
-
-    > div {
-      padding: 5px 5px;
-
-      &:not(.drag):not(.more-options) {
-        flex-basis: 200px;
-      }
-    }
-  }
-
   .inner.row {
     flex-grow: 1;
 
@@ -824,6 +825,21 @@ label.label {
         transition: none;
       }
     }
+  }
+}
+</style>
+
+<style lang="scss">
+.row {
+    display: flex;
+    align-items: center;
+
+    > div {
+      padding: 5px 5px;
+
+      &:not(.drag):not(.more-options) {
+        flex-basis: 200px;
+      }
   }
 }
 </style>
