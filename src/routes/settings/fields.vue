@@ -37,8 +37,8 @@
       </div>
       <div class="body" :class="{ dragging }">
 
-        <VSettingsFieldList
-          :fields="groupedFields"
+        <VSettingsFieldList @click="log"
+          :fields="groups"
           @startSort="startSort"
           @saveSort="saveSort"
           @start-editing-field="startEditingField"
@@ -148,6 +148,23 @@ export default {
       fields: null,
       directusFields: null,
       groupedFields: null,
+      groupedFieldsTest: [
+        {
+          field: "ff_ff",
+          children : [{
+            field: "ff_ff_jr",
+            children : null,
+          },
+          {
+              field: "ff_ff_jr2",
+              children: null
+          }]
+        },
+        {
+          field: "aa_aa",
+          children: null
+        }
+      ],
       groups: null,
 
       notFound: false,
@@ -206,29 +223,83 @@ export default {
     },
     ungroupedFields() {
       var fieldsArray = Object.values(this.groupedFields);
+      var results = [];
 
       fieldsArray
-        .filter(field => field.type && field.type.toLowerCase() === "group")
         .forEach(field => {
-          var temp = field.children;
-          fieldsArray.push(...temp);
-          delete field.children;
+           results = [...results, field, this.getChildren(field)];
         })
+      var ok = fieldsArray.filter(exists => exists)
+      console.log("unchhildfy")
+      console.log(ok);
+      return ok;
+    },
+   fieldTree() {
+      const fieldsArray = Object.values(this.fields);
 
-      console.log(fieldsArray);
-      return fieldsArray
+      var [filtered, nonGroupFields] = this.$lodash.partition(fieldsArray,
+         field => field.type.toLowerCase() === "group")
+
+      var groupFields = filtered.map(group => ({
+          ...group,
+          children: []
+        }));
+      
+    var groupedGroups = []
+
+      nonGroupFields.forEach(field => {
+        if (field.group != null) {
+          const groupIndex = this.$lodash.findIndex(
+            groupFields,
+            group => group.id === field.group
+          );
+          return groupFields[groupIndex].children.push(field);
+        }
+          return groupedGroups.push(field);
+      })
+
+      groupFields.forEach((child, index) => {
+        const groupIndex = this.$lodash.findIndex(
+            groupFields,
+            group2 => group2.id === child.group
+          );
+        if (groupIndex > -1) {
+          groupFields[groupIndex].children.push(child);
+        } else {
+          groupedGroups.push(child);
+        }
+      });
+
+        return groupedGroups;
     },
   },
   watch:{
     fields: {
     deep: true,
     handler() {
-      this.groupFields();
+      this.groups = this.fieldTree;
       }
     }
   },
   methods: {
-    groupFields() {
+    log(){
+      this.groupedFieldsTest.push({field: "aloohaa", children: {field: "boohaaa"}})
+    },
+    getChildren(field) {
+      if (!field.children || field.children == null) return;
+
+      const results = []
+      field.children.forEach(child => {
+        if (child.children) {
+          delete field.children;
+          return this.getChildren(child);
+        }
+        return results.push(child);
+      })
+
+      return results;
+    },
+    fieldTree() {
             console.log("Check")
       console.log(this.fields);
       const fieldsArray = Object.values(this.fields);
@@ -250,8 +321,9 @@ export default {
             result,
             group => group.id === field.group
           );
+
            console.log("push " +field.field+ "into [" + groupIndex)
-           fieldsArray.splice(index, 1);
+
           return result[groupIndex].children.push(field);
         }
         return result.push(field);

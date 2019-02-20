@@ -1,9 +1,10 @@
 <template>
-<draggable @start="startSort" @end="saveSort" >
+<draggable @start="startSort" @end="saveSort" :element="'ul'" :options="{group:'same'}"
+      :list="fields">
 			<li v-for="field in fields" :key="field.field" @click="log">
          <p>{{field.field}}</p>
-         <p v-if="hasChildren"
-          :fields="field.children"></p>
+         <settings-field-list v-if="field.children"
+          :fields="field.children"/>
 			  </li>
 </draggable>
 </template>
@@ -55,16 +56,52 @@ export default {
 			localStorage.setItem(sortable.options.group.name, order.join('|'));
 		    }
       }
-    }
+    },
+   fieldTree(){
+      const fieldsArray = Object.values(this.fields);
+
+      var [filtered, nonGroupFields] = this.$lodash.partition(fieldsArray,
+         field => field.type.toLowerCase() === "group")
+
+      var groupFields = filtered.map(group => ({
+          ...group,
+          children: []
+        }));
+      
+    var groupedGroups = []
+
+      nonGroupFields.forEach(field => {
+        if (field.group != null) {
+          const groupIndex = this.$lodash.findIndex(
+            groupFields,
+            group => group.id === field.group
+          );
+          return groupFields[groupIndex].children.push(field);
+        }
+          return groupedGroups.push(field);
+      })
+
+      groupFields.forEach((child, index) => {
+        const groupIndex = this.$lodash.findIndex(
+            groupFields,
+            group2 => group2.id === child.group
+          );
+        if (groupIndex > -1) {
+          groupFields[groupIndex].children.push(child);
+        } else {
+          groupedGroups.push(child);
+        }
+      });
+
+        return groupedGroups;
+    },
   },
   watch: {
-    field: {
+    fields: {
       deep: true,      
       handler(val) {
         console.log("watcher: field changed")
-        this.children = this.field.children;
-                console.log(this.children);
-                console.log(this.field.children);
+        this.fieldArranged = [...this.fieldTree];
         // if (val.children > 0) {
         //   console.log("children: ")
         //   console.log(val.children)
@@ -75,6 +112,7 @@ export default {
     }
   },
   methods:{
+ 
     expand(){
       alert("alert");
     },
@@ -99,7 +137,7 @@ export default {
       );
     },
     log(){
-      console.log(this.fields);
+      console.log(this.fieldArranged);
     }
   },
   data(){
@@ -112,7 +150,8 @@ export default {
         "sort"
       ],
       children: null,
-      loaded: false
+      loaded: false,
+      fieldArranged: null
     }
   }
 }
@@ -212,5 +251,21 @@ export default {
     }
   }
 }
+
 }
+
+  li{
+  border: 1px solid black;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none;
+    padding:10px;
+  }
+
+  ul{
+    padding:30px;
+  }
 </style>
