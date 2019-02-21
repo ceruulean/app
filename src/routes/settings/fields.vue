@@ -721,6 +721,7 @@ h2 {
 }
 
 .table {
+
   background-color: var(--white);
   border: var(--input-border-width) solid var(--lighter-gray);
   border-radius: var(--border-radius);
@@ -774,10 +775,6 @@ h2 {
       height: 40px;
       border-bottom: 1px solid var(--lightest-gray);
 
-      &:last-of-type {
-        border-bottom: none;
-      }
-
       &:hover {
         background-color: var(--highlight);
       }
@@ -810,25 +807,6 @@ h2 {
 
 .new-field {
   margin-bottom: 40px;
-}
-
-.more-options {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-
-  i {
-    color: var(--lighter-gray);
-    transition: color var(--fast) var(--transition);
-  }
-
-  &:hover {
-    i {
-      transition: none;
-      color: var(--gray);
-    }
-  }
 }
 
 em.note {
@@ -899,13 +877,11 @@ label.label {
     }
   }
 }
-</style>
 
-<style lang="scss">
 .row {
     display: flex;
     align-items: center;
-
+    height: 40px;
     > div {
       padding: 5px 5px;
 

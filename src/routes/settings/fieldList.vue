@@ -1,12 +1,82 @@
 <template>
-<draggable @start="startSort" @end="saveSort" :element="'ul'" :options="{group:'same'}"
+<draggable @start="startSort" @end="saveSort" :element="'div'" :options="{group:'same'}"
       :list="fields">
-			<li v-for="field in fields" :key="field.field" @click="log">
+			<!-- <li v-for="field in fields" :key="field.field" @click="log">
          <p>{{field.field}}</p>
          <settings-field-list v-if="field.children"
           :fields="field.children"/>
-			  </li>
-</draggable>
+			  </li> -->
+
+          <div class="row" v-for="field in fields" :key="field.field"
+          @click="log"
+          >
+            <div class="drag"><i class="material-icons">drag_handle</i></div>
+            <div class="inner row" @click.stop="startEditingField(field)">
+              <div>
+                {{ $helpers.formatTitle(field.field) }}
+                <i
+                  v-tooltip="$t('required')"
+                  class="material-icons required"
+                  v-if="field.required === true || field.required === '1'"
+                  >star</i
+                >
+                <i
+                  v-tooltip="$t('primary_key')"
+                  class="material-icons key"
+                  v-if="field.primary_key"
+                  >vpn_key</i
+                >
+              </div>
+              <div>
+                {{
+                  ($store.state.extensions.interfaces[field.interface] &&
+                    $store.state.extensions.interfaces[field.interface].name) ||
+                    "--"
+                }}
+              </div>
+            </div>
+            <v-popover
+              class="more-options"
+              placement="left-start"
+              v-if="canDuplicate(field.interface) || fields.length > 0"
+            >
+              <button type="button" class="menu-toggle">
+                <i class="material-icons">more_vert</i>
+              </button>
+              <template slot="popover">
+                <ul class="ctx-menu">
+                  <li>
+                    <button
+                      v-close-popover
+                      type="button"
+                      @click.stop="duplicateField(field)"
+                      :disabled="!canDuplicate(field.interface)"
+                    >
+                      <i class="material-icons">control_point_duplicate</i>
+                      {{ $t("duplicate") }}
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      v-close-popover
+                      :disabled="fields.length === 1"
+                      type="button"
+                      @click.stop="warnRemoveField(field.field)"
+                    >
+                      <i class="material-icons">close</i> {{ $t("delete") }}
+                    </button>
+                  </li>
+                </ul>
+              </template>
+            </v-popover>
+    
+      <settings-field-list v-if="field.children"
+      class="group"
+      :fields="field.children"/>
+    </div>
+
+  </draggable>
+
 </template>
 
 <script>
@@ -158,17 +228,28 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.group{
+.group {
+  display:flex;
+  flex-flow:column nowrap;
   background-color:pink;
+  align-self:flex-start;
+  flex:0 0 100%;
 }
-.dragging .row:hover {
+  .dragging .row:hover {
       background-color: var(--white);
   }
 
   .row {
+    display: flex;
+    flex-flow:row wrap;
+    align-items: center;
+
+    > div {
+      border-bottom: none;
+      padding: 5px 5px;
+    }
       cursor: pointer;
       position: relative;
-      height: 40px;
       border-bottom: 1px solid var(--lightest-gray);
 
       &:last-of-type {
@@ -203,16 +284,9 @@ export default {
       }
 }
 
-  i {
-    color: var(--light-gray);
-    margin-right: 5px;
-    transition: color var(--fast) var(--transition);
-  }
-
   button {
     display: flex;
     align-items: center;
-    padding: 5px;
     color: var(--darker-gray);
     width: 100%;
     height: 100%;
