@@ -1,13 +1,10 @@
 <template>
 <draggable @start="startSort"
-  @add="add(groupID)"
-  @end="dragParent = false"
+  @sort="onSort"
   :options="sortableOptions"
   :list="fields"
-  @click="log"
   >
   <div class="row" v-for="field in fields" :key="field.field"
-    @click="log"
     >
     <div class="drag"><i class="material-icons">drag_handle</i></div>
     <div class="inner row" @click.stop="startEditingField(field)">
@@ -113,9 +110,8 @@ export default {
     sortableOptions(){
       return {
         group: { name: "a"
-        },
-        disabled: this.dragParent
-        };
+        }
+      };
     },
     store(){ //SortableJS in VueDraggable
       return {
@@ -139,51 +135,14 @@ export default {
 		    }
       }
     },
-   fieldTree(){
-      const fieldsArray = Object.values(this.fields);
-
-      var [filtered, nonGroupFields] = this.$lodash.partition(fieldsArray,
-         field => field.type.toLowerCase() === "group")
-
-      var groupFields = filtered.map(group => ({
-          ...group,
-          children: []
-        }));
-      
-    var groupedGroups = []
-
-      nonGroupFields.forEach(field => {
-        if (field.group != null) {
-          const groupIndex = this.$lodash.findIndex(
-            groupFields,
-            group => group.id === field.group
-          );
-          return groupFields[groupIndex].children.push(field);
-        }
-          return groupedGroups.push(field);
-      })
-
-      groupFields.forEach((child, index) => {
-        const groupIndex = this.$lodash.findIndex(
-            groupFields,
-            group2 => group2.id === child.group
-          );
-        if (groupIndex > -1) {
-          groupFields[groupIndex].children.push(child);
-        } else {
-          groupedGroups.push(child);
-        }
-      });
-
-        return groupedGroups;
-    },
   },
   methods:{
-    add(groupID) {
+    //new item appears in list
+    onSort() {
        this.saveSort(this.fields.map((field, index) => ({
         field : field.field,
-        sort : index + 1,
-        group : groupID
+        sort : index,
+        group : this.groupID
         }))
       );
     },
@@ -208,9 +167,8 @@ export default {
         this.duplicateInterfaceBlacklist.includes(fieldInterface) === false
       );
     },
-    saveSort(receivedFields){
-      console.log(receivedFields)
-      this.$emit('saveSort', [...this.fields, ...receivedFields]);
+    saveSort(updateFields) {
+      this.$emit('saveSort', updateFields);
     },
     log(){
       console.log(this.fields);
@@ -225,7 +183,8 @@ export default {
         "many-to-one",
         "sort"
       ],
-      dragParent: false
+      dragParent: false,
+      dataList: null
     }
   }
 }

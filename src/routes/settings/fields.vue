@@ -37,7 +37,7 @@
       </div>
       <div class="body" :class="{ dragging }">
 
-        <VSettingsFieldList @click="log"
+        <VSettingsFieldList
           :fields="groups"
           @startSort="startSort"
           @saveSort="saveSort"
@@ -148,23 +148,6 @@ export default {
       fields: null,
       directusFields: null,
       groupedFields: null,
-      groupedFieldsTest: [
-        {
-          field: "ff_ff",
-          children : [{
-            field: "ff_ff_jr",
-            children : null,
-          },
-          {
-              field: "ff_ff_jr2",
-              children: null
-          }]
-        },
-        {
-          field: "aa_aa",
-          children: null
-        }
-      ],
       groups: null,
 
       notFound: false,
@@ -236,7 +219,6 @@ export default {
     },
    fieldTree() {
       const fieldsArray = Object.values(this.fields);
-      console.log(fieldsArray);
 
       var [filtered, nonGroupFields] = this.$lodash.partition(fieldsArray,
          field => field.type.toLowerCase() === "group")
@@ -259,33 +241,37 @@ export default {
           return groupedGroups.push(field);
       })
 
-      groupFields.forEach((child, index) => {
+      groupFields.forEach((field, index) => {
         const groupIndex = this.$lodash.findIndex(
             groupFields,
-            group2 => group2.id === child.group
+            group2 => group2.id === field.group
           );
         if (groupIndex > -1) {
-          groupFields[groupIndex].children.push(child);
+          groupFields[groupIndex].children.push(field);
         } else {
-          groupedGroups.push(child);
+          groupedGroups.push(field);
         }
-      });
+      })
+
+      groupFields.forEach(field => field.children.sort((a, b) => {
+        if (a.sort == b.sort) return 0;
+        if (a.sort === null) return 1;
+        if (b.sort === null) return -1;
+        return a.sort > b.sort ? 1 : -1;
+      }))
 
         return groupedGroups;
     },
   },
   watch:{
     fields: {
-    deep: false,
+    deep: true,
     handler() {
       this.groups = [...this.fieldTree];
       }
     }
   },
   methods: {
-    log(){
-      this.groupedFieldsTest.push({field: "aloohaa", children: {field: "boohaaa"}})
-    },
     getChildren(field) {
       if (!field.children || field.children == null) return;
 
@@ -584,12 +570,15 @@ export default {
       const fieldUpdates = this.fields.map(field => {
         const found = this.$lodash.find(deltas, ['field', field.field]);
         if (found) {
-          field.field = found.field;
-          field.sort = found.sort;
-          field.group = found.group;
-        }
-         return field;
-      });
+          return {
+          field: field.field,
+          sort : found.sort,
+          group : found.group
+          }
+        } else {
+            return { field: field.field}
+          }
+        });
 
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
