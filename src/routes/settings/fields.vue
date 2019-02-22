@@ -74,7 +74,7 @@
     <portal to="modal" v-if="confirmFieldRemove">
       <v-confirm
         color="danger"
-        :message="$t('delete_field_are_you_sure', { field: fieldToBeRemoved })"
+        :message="$t('delete_field_are_you_sure', { field: fieldToBeRemoved.field })"
         :confirm-text="$t('delete')"
         @cancel="confirmFieldRemove = false"
         @confirm="removeField(fieldToBeRemoved)"
@@ -147,7 +147,6 @@ export default {
 
       fields: null,
       directusFields: null,
-      groupedFields: null,
       groups: null,
 
       notFound: false,
@@ -204,24 +203,11 @@ export default {
         ...this.edits
       };
     },
-    ungroupedFields() {
-      var fieldsArray = Object.values(this.groupedFields);
-      var results = [];
-
-      fieldsArray
-        .forEach(field => {
-           results = [...results, field, this.getChildren(field)];
-        })
-      var ok = fieldsArray.filter(exists => exists)
-      console.log("unchildfy")
-      console.log(ok);
-      return ok;
-    },
    fieldTree() {
-      const fieldsArray = Object.values(this.fields);
 
-      var [filtered, nonGroupFields] = this.$lodash.partition(fieldsArray,
-         field => field.type.toLowerCase() === "group")
+      var [filtered, nonGroupFields] = this.$lodash.partition(
+        Object.values(this.fields),
+        field => field.type.toLowerCase() === "group")
 
       var groupFields = filtered.map(group => ({
           ...group,
@@ -253,14 +239,15 @@ export default {
         }
       })
 
-      groupFields.forEach(field => field.children.sort((a, b) => {
+      const comparator = function (a, b){
         if (a.sort == b.sort) return 0;
         if (a.sort === null) return 1;
         if (b.sort === null) return -1;
         return a.sort > b.sort ? 1 : -1;
-      }))
+      };
 
-        return groupedGroups;
+      groupFields.forEach(field => field.children.sort(comparator));
+        return groupedGroups.sort(comparator);
     },
   },
   watch:{
@@ -272,20 +259,6 @@ export default {
     }
   },
   methods: {
-    getChildren(field) {
-      if (!field.children || field.children == null) return;
-
-      const results = []
-      field.children.forEach(child => {
-        if (child.children) {
-          delete field.children;
-          return this.getChildren(child);
-        }
-        return results.push(child);
-      })
-
-      return results;
-    },
     remove() {
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
@@ -524,13 +497,13 @@ export default {
       this.fieldBeingEdited = field;
       this.editingField = true;
     },
-    warnRemoveField(fieldName) {
-      this.fieldToBeRemoved = fieldName;
+    warnRemoveField(field) {
+      this.fieldToBeRemoved = field;
       this.confirmFieldRemove = true;
     },
-    removeField(fieldName) {
+    removeField(fieldToDelete) {
       this.removingField = true;
-
+      const fieldName = fieldToDelete.field;
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
 
@@ -539,6 +512,20 @@ export default {
         .then(() => {
           this.$store.dispatch("loadingFinished", id);
           this.fields = this.fields.filter(({ field }) => field !== fieldName);
+          //delete group relations
+          if (fieldToDelete.type == "group") {
+            this.saveSort(this.fields.filter(fieldG => 
+              fieldG.group == fieldToDelete.id
+              )
+              .map(related => {
+                return {
+                field: related.field,
+                sort: related.sort,
+                group: null
+                }
+              }))
+          }
+          
           this.removingField = false;
           this.fieldToBeRemoved = null;
           this.confirmFieldRemove = false;
@@ -567,7 +554,7 @@ export default {
     },
     saveSort(deltas) {
       this.dragging = false;
-      const fieldUpdates = this.fields.map(field => {
+      const fieldUpdates = this.fields.map((field) => {
         const found = this.$lodash.find(deltas, ['field', field.field]);
         if (found) {
           return {
@@ -576,7 +563,9 @@ export default {
           group : found.group
           }
         } else {
-            return { field: field.field}
+            return {
+              field: field.field,
+            }
           }
         });
 
@@ -780,47 +769,6 @@ label.label {
   font-size: 1.2rem;
   line-height: 1.1;
   font-weight: 400;
-}
-
-.ctx-menu {
-  list-style: none;
-  padding: 0;
-  width: var(--width-small);
-
-  li {
-    display: block;
-  }
-
-  i {
-    color: var(--light-gray);
-    margin-right: 5px;
-    transition: color var(--fast) var(--transition);
-  }
-
-  button {
-    display: flex;
-    align-items: center;
-    padding: 5px;
-    color: var(--darker-gray);
-    width: 100%;
-    height: 100%;
-    transition: color var(--fast) var(--transition);
-    &:disabled,
-    &[disabled] {
-      color: var(--lighter-gray);
-      i {
-        color: var(--lighter-gray);
-      }
-    }
-    &:not(:disabled):not(&[disabled]):hover {
-      color: var(--accent);
-      transition: none;
-      i {
-        color: var(--accent);
-        transition: none;
-      }
-    }
-  }
 }
 
 .row {

@@ -1,10 +1,13 @@
 <template>
-<draggable @start="startSort"
-  @sort="onSort"
+<draggable
+  @start="startSort"
+  @sort="add"
+  @end="dragging = false"
   :options="sortableOptions"
   :list="fields"
   >
   <div class="row" v-for="field in fields" :key="field.field"
+
     >
     <div class="drag"><i class="material-icons">drag_handle</i></div>
     <div class="inner row" @click.stop="startEditingField(field)">
@@ -57,7 +60,7 @@
               v-close-popover
               :disabled="fields.length === 1"
               type="button"
-              @click.stop="warnRemoveField(field.field)"
+              @click.stop="warnRemoveField(field)"
             >
               <i class="material-icons">close</i> {{ $t("delete") }}
             </button>
@@ -69,7 +72,8 @@
     <settings-field-list v-if="field.children"
     :class="[
       'group',
-      (field.children.length > 0? '' : 'empty' )
+      (field.children.length > 0? '' : 'empty' ),
+      (dragging ? 'potential' : '')
       ]"
     :groupID="field.id"
     :fields="field.children"
@@ -109,7 +113,13 @@ export default {
     },
     sortableOptions(){
       return {
-        group: { name: "a"
+        group: {
+          name: "a",
+          direction: "vertical",
+          swapThreshold: 0.5,
+          emptyInsertThreshold: 40,
+          scroll: true,
+          scrollSensitivity: 100
         }
       };
     },
@@ -138,7 +148,7 @@ export default {
   },
   methods:{
     //new item appears in list
-    onSort() {
+    add() {
        this.saveSort(this.fields.map((field, index) => ({
         field : field.field,
         sort : index,
@@ -146,11 +156,22 @@ export default {
         }))
       );
     },
+    update(){
+      this.saveSort(this.fields.map((field, index) => ({
+        field : field.field,
+        sort : index,
+        group : this.groupID
+        }))
+      );
+    },
+    log(){
+      console.log(this.fields);
+    },
     expand(){
       alert("alert");
     },
     startSort(){
-      this.dragParent = true;
+      this.dragging = true;
       this.$emit('startSort');
     },
     startEditingField(field){
@@ -183,7 +204,7 @@ export default {
         "many-to-one",
         "sort"
       ],
-      dragParent: false,
+      dragging: false,
       dataList: null
     }
   }
@@ -197,9 +218,11 @@ export default {
   align-self:flex-start;
   flex:0 0 100%;
   border-left:2px var(--lighter-gray) solid;
+  transition: padding var(--fast) var(--transition);
 
-  &.empty{
-    padding-bottom:1em;
+  &.potential {
+    padding-bottom:1.5em;
+    border-color:var(--accent);
   }
 }
   .dragging .row:hover {
@@ -265,35 +288,10 @@ export default {
       }
 }
 
-button {
-  display: flex;
-  align-items: center;
-  color: var(--darker-gray);
-  width: 100%;
-  height: 100%;
-  transition: color var(--fast) var(--transition);
-  &:disabled,
-  &[disabled] {
-    color: var(--lighter-gray);
-    i {
-      color: var(--lighter-gray);
-    }
-  }
-  &:not(:disabled):not(&[disabled]):hover {
-    color: var(--accent);
-    transition: none;
-    i {
-      color: var(--accent);
-      transition: none;
-    }
-  }
-}
-
 .more-options {
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0.5em;
   padding-right: 5px;
 
   i {
@@ -309,19 +307,45 @@ button {
   }
 }
 
+.ctx-menu {
+  list-style: none;
+  padding: 0;
+  width: var(--width-small);
 
-  li{
-  border: 1px solid black;
-    -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-     -khtml-user-select: none; /* Konqueror HTML */
-       -moz-user-select: none; /* Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-            user-select: none;
-    padding:10px;
+  li {
+    display: block;
   }
 
-  ul{
-    padding:30px;
+  i {
+    color: var(--light-gray);
+    margin-right: 5px;
+    transition: color var(--fast) var(--transition);
   }
+
+  button {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    color: var(--darker-gray);
+    width: 100%;
+    height: 100%;
+    transition: color var(--fast) var(--transition);
+    &:disabled,
+    &[disabled] {
+      color: var(--lighter-gray);
+      i {
+        color: var(--lighter-gray);
+      }
+    }
+    &:not(:disabled):not(&[disabled]):hover {
+      color: var(--accent);
+      transition: none;
+      i {
+        color: var(--accent);
+        transition: none;
+      }
+    }
+  }
+}
+
 </style>
