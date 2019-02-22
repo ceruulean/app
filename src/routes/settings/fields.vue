@@ -41,9 +41,9 @@
           :fields="groups"
           @startSort="startSort"
           @saveSort="saveSort"
-          @start-editing-field="startEditingField"
-          @duplicate-field="duplicateField"
-          @warn-remove-field="warnRemoveField"
+          @warnRemoveField="warnRemoveField"
+          @duplicateField="duplicateField"
+          @startEditingField="startEditingField"
           />
 
       </div>
@@ -210,7 +210,7 @@ export default {
       return this.$store.state.collections[this.collection];
     },
     fieldsWithSort() {
-      return this.ungroupedFields.map((field, index) => ({
+      return this.fields.map((field, index) => ({
         ...field,
         sort: index + 1
       }));
@@ -230,12 +230,13 @@ export default {
            results = [...results, field, this.getChildren(field)];
         })
       var ok = fieldsArray.filter(exists => exists)
-      console.log("unchhildfy")
+      console.log("unchildfy")
       console.log(ok);
       return ok;
     },
    fieldTree() {
       const fieldsArray = Object.values(this.fields);
+      console.log(fieldsArray);
 
       var [filtered, nonGroupFields] = this.$lodash.partition(fieldsArray,
          field => field.type.toLowerCase() === "group")
@@ -275,9 +276,9 @@ export default {
   },
   watch:{
     fields: {
-    deep: true,
+    deep: false,
     handler() {
-      this.groups = this.fieldTree;
+      this.groups = [...this.fieldTree];
       }
     }
   },
@@ -299,48 +300,6 @@ export default {
 
       return results;
     },
-    fieldTree() {
-            console.log("Check")
-      console.log(this.fields);
-      const fieldsArray = Object.values(this.fields);
-      // .filter(
-      //   field =>
-      //     this.permissions.read_field_blacklist.includes(field.field) === false
-      // );
-
-      const result = fieldsArray
-        .filter(field => field.type && field.type.toLowerCase() === "group")
-        .map(group => ({
-          ...group,
-          children: []
-        }));
-
-      fieldsArray.forEach((field, index) => {
-        if (field.group != null) {
-          const groupIndex = this.$lodash.findIndex(
-            result,
-            group => group.id === field.group
-          );
-
-           console.log("push " +field.field+ "into [" + groupIndex)
-
-          return result[groupIndex].children.push(field);
-        }
-        return result.push(field);
-      });
-
-      this.groupedFields = result
-        // .filter(
-        //   field => field.hidden_detail === false || field.hidden_detail == "0"
-        // )
-        .sort((a, b) => {
-          if (a.sort == b.sort) return 0;
-          if (a.sort === null) return 1;
-          if (b.sort === null) return -1;
-          return a.sort > b.sort ? 1 : -1;
-        });
-
-      },
     remove() {
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
@@ -620,12 +579,17 @@ export default {
     startSort() {
       this.dragging = true;
     },
-    saveSort() {
+    saveSort(deltas) {
       this.dragging = false;
-      const fieldUpdates = this.fieldsWithSort.map(field => ({
-        field: field.field,
-        sort: field.sort
-      }));
+      const fieldUpdates = this.fields.map(field => {
+        const found = this.$lodash.find(deltas, ['field', field.field]);
+        if (found) {
+          field.field = found.field;
+          field.sort = found.sort;
+          field.group = found.group;
+        }
+         return field;
+      });
 
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
@@ -739,14 +703,6 @@ h2 {
     height: 60px;
     .row {
       height: 60px;
-    }
-  }
-
-  .inner.row {
-    flex-grow: 1;
-
-    > div {
-      padding: 0;
     }
   }
 

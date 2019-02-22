@@ -1,82 +1,89 @@
 <template>
-<draggable @start="startSort" @end="saveSort" :element="'div'" :options="{group:'same'}"
-      :list="fields">
-			<!-- <li v-for="field in fields" :key="field.field" @click="log">
-         <p>{{field.field}}</p>
-         <settings-field-list v-if="field.children"
-          :fields="field.children"/>
-			  </li> -->
-
-          <div class="row" v-for="field in fields" :key="field.field"
-          @click="log"
-          >
-            <div class="drag"><i class="material-icons">drag_handle</i></div>
-            <div class="inner row" @click.stop="startEditingField(field)">
-              <div>
-                {{ $helpers.formatTitle(field.field) }}
-                <i
-                  v-tooltip="$t('required')"
-                  class="material-icons required"
-                  v-if="field.required === true || field.required === '1'"
-                  >star</i
-                >
-                <i
-                  v-tooltip="$t('primary_key')"
-                  class="material-icons key"
-                  v-if="field.primary_key"
-                  >vpn_key</i
-                >
-              </div>
-              <div>
-                {{
-                  ($store.state.extensions.interfaces[field.interface] &&
-                    $store.state.extensions.interfaces[field.interface].name) ||
-                    "--"
-                }}
-              </div>
-            </div>
-            <v-popover
-              class="more-options"
-              placement="left-start"
-              v-if="canDuplicate(field.interface) || fields.length > 0"
-            >
-              <button type="button" class="menu-toggle">
-                <i class="material-icons">more_vert</i>
-              </button>
-              <template slot="popover">
-                <ul class="ctx-menu">
-                  <li>
-                    <button
-                      v-close-popover
-                      type="button"
-                      @click.stop="duplicateField(field)"
-                      :disabled="!canDuplicate(field.interface)"
-                    >
-                      <i class="material-icons">control_point_duplicate</i>
-                      {{ $t("duplicate") }}
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      v-close-popover
-                      :disabled="fields.length === 1"
-                      type="button"
-                      @click.stop="warnRemoveField(field.field)"
-                    >
-                      <i class="material-icons">close</i> {{ $t("delete") }}
-                    </button>
-                  </li>
-                </ul>
-              </template>
-            </v-popover>
-    
-      <settings-field-list v-if="field.children"
-      class="group"
-      :fields="field.children"/>
+<draggable @start="startSort"
+  @add="add(groupID)"
+  @end="dragParent = false"
+  :options="sortableOptions"
+  :list="fields"
+  @click="log"
+  >
+  <div class="row" v-for="field in fields" :key="field.field"
+    @click="log"
+    >
+    <div class="drag"><i class="material-icons">drag_handle</i></div>
+    <div class="inner row" @click.stop="startEditingField(field)">
+      <div>
+        {{ $helpers.formatTitle(field.field) }}
+        <i
+          v-tooltip="$t('required')"
+          class="material-icons required"
+          v-if="field.required === true || field.required === '1'"
+          >star</i
+        >
+        <i
+          v-tooltip="$t('primary_key')"
+          class="material-icons key"
+          v-if="field.primary_key"
+          >vpn_key</i
+        >
+      </div>
+      <div>
+        {{
+          ($store.state.extensions.interfaces[field.interface] &&
+            $store.state.extensions.interfaces[field.interface].name) ||
+            "--"
+        }}
+      </div>
     </div>
+    <v-popover
+      class="more-options"
+      placement="left-start"
+      v-if="canDuplicate(field.interface) || fields.length > 0"
+    >
+      <button type="button" class="menu-toggle">
+        <i class="material-icons">more_vert</i>
+      </button>
+      <template slot="popover">
+        <ul class="ctx-menu">
+          <li>
+            <button
+              v-close-popover
+              type="button"
+              @click.stop="duplicateField(field)"
+              :disabled="!canDuplicate(field.interface)"
+            >
+              <i class="material-icons">control_point_duplicate</i>
+              {{ $t("duplicate") }}
+            </button>
+          </li>
+          <li>
+            <button
+              v-close-popover
+              :disabled="fields.length === 1"
+              type="button"
+              @click.stop="warnRemoveField(field.field)"
+            >
+              <i class="material-icons">close</i> {{ $t("delete") }}
+            </button>
+          </li>
+        </ul>
+      </template>
+    </v-popover>
+  
+    <settings-field-list v-if="field.children"
+    :class="[
+      'group',
+      (field.children.length > 0? '' : 'empty' )
+      ]"
+    :groupID="field.id"
+    :fields="field.children"
+    @saveSort="saveSort"
+    @warnRemoveField="warnRemoveField"
+    @duplicateField="duplicateField"
+    @startEditingField="startEditingField"
+    />
+  </div>
 
-  </draggable>
-
+</draggable>
 </template>
 
 <script>
@@ -86,6 +93,11 @@ export default {
     fields: {
       type: Array,
       required: true
+    },
+    groupID: {
+      type: Number,
+      required: false,
+      default: null
     }
   },
   computed: {
@@ -100,9 +112,9 @@ export default {
     },
     sortableOptions(){
       return {
-        group: { name: "test"
+        group: { name: "a"
         },
-        store: this.store,
+        disabled: this.dragParent
         };
     },
     store(){ //SortableJS in VueDraggable
@@ -166,48 +178,42 @@ export default {
         return groupedGroups;
     },
   },
-  watch: {
-    fields: {
-      deep: true,      
-      handler(val) {
-        console.log("watcher: field changed")
-        this.fieldArranged = [...this.fieldTree];
-        // if (val.children > 0) {
-        //   console.log("children: ")
-        //   console.log(val.children)
-        // } else {
-        //   this.children = null;
-        // }
-      }
-    }
-  },
   methods:{
- 
+    add(groupID) {
+       this.saveSort(this.fields.map((field, index) => ({
+        field : field.field,
+        sort : index + 1,
+        group : groupID
+        }))
+      );
+    },
     expand(){
       alert("alert");
     },
     startSort(){
+      this.dragParent = true;
       this.$emit('startSort');
     },
-    saveSort(){
-      this.$emit('saveSort');
-    },
     startEditingField(field){
-      this.$emit('start-editing-field', field);
+      this.$emit('startEditingField', field);
     },
     duplicateField(field){
-      this.$emit('duplicate-field', field);
+      this.$emit('duplicateField', field);
     },
     warnRemoveField(fieldName){
-      this.$emit('warn-remove-field', fieldName);
+      this.$emit('warnRemoveField', fieldName);
     },
     canDuplicate(fieldInterface) {
       return (
         this.duplicateInterfaceBlacklist.includes(fieldInterface) === false
       );
     },
+    saveSort(receivedFields){
+      console.log(receivedFields)
+      this.$emit('saveSort', [...this.fields, ...receivedFields]);
+    },
     log(){
-      console.log(this.fieldArranged);
+      console.log(this.fields);
     }
   },
   data(){
@@ -219,9 +225,7 @@ export default {
         "many-to-one",
         "sort"
       ],
-      children: null,
-      loaded: false,
-      fieldArranged: null
+      dragParent: false
     }
   }
 }
@@ -231,9 +235,13 @@ export default {
 .group {
   display:flex;
   flex-flow:column nowrap;
-  background-color:pink;
   align-self:flex-start;
   flex:0 0 100%;
+  border-left:2px var(--lighter-gray) solid;
+
+  &.empty{
+    padding-bottom:1em;
+  }
 }
   .dragging .row:hover {
       background-color: var(--white);
@@ -243,14 +251,28 @@ export default {
     display: flex;
     flex-flow:row wrap;
     align-items: center;
+    position:relative;
+    cursor: pointer;
+    position: relative;
+    border-bottom: 1px solid var(--lightest-gray);
+    padding: 6px 0 6px 6px;
 
     > div {
+      
       border-bottom: none;
-      padding: 5px 5px;
+      &:not(.group):not(.drag):not(.more-options) {
+        flex-basis: 200px;
+      }
     }
-      cursor: pointer;
-      position: relative;
-      border-bottom: 1px solid var(--lightest-gray);
+
+    .inner{
+    flex-grow: 1;
+
+      > div {
+        padding:0;
+      }
+    }
+
 
       &:last-of-type {
         border-bottom: none;
@@ -284,34 +306,36 @@ export default {
       }
 }
 
-  button {
-    display: flex;
-    align-items: center;
-    color: var(--darker-gray);
-    width: 100%;
-    height: 100%;
-    transition: color var(--fast) var(--transition);
-    &:disabled,
-    &[disabled] {
+button {
+  display: flex;
+  align-items: center;
+  color: var(--darker-gray);
+  width: 100%;
+  height: 100%;
+  transition: color var(--fast) var(--transition);
+  &:disabled,
+  &[disabled] {
+    color: var(--lighter-gray);
+    i {
       color: var(--lighter-gray);
-      i {
-        color: var(--lighter-gray);
-      }
     }
-    &:not(:disabled):not(&[disabled]):hover {
+  }
+  &:not(:disabled):not(&[disabled]):hover {
+    color: var(--accent);
+    transition: none;
+    i {
       color: var(--accent);
       transition: none;
-      i {
-        color: var(--accent);
-        transition: none;
-      }
+    }
+  }
 }
-  
+
 .more-options {
   position: absolute;
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  padding-right: 5px;
 
   i {
     color: var(--lighter-gray);
@@ -326,7 +350,6 @@ export default {
   }
 }
 
-}
 
   li{
   border: 1px solid black;
