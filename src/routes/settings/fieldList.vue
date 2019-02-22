@@ -34,6 +34,9 @@
         }}
       </div>
     </div>
+    <div @click="expand" v-if="field.children">
+        <i class="material-icons">{{expanded? 'expand_less' : 'expand_more'}}</i>
+    </div>
     <v-popover
       class="more-options"
       placement="left-start"
@@ -69,7 +72,7 @@
       </template>
     </v-popover>
   
-    <settings-field-list v-if="field.children"
+    <settings-field-list v-if="field.children && expanded"
     :class="[
       'group',
       (field.children.length > 0? '' : 'empty' ),
@@ -168,7 +171,7 @@ export default {
       console.log(this.fields);
     },
     expand(){
-      alert("alert");
+      this.expanded = !this.expanded;
     },
     startSort(){
       this.dragging = true;
@@ -205,7 +208,7 @@ export default {
         "sort"
       ],
       dragging: false,
-      dataList: null
+      expanded:false
     }
   }
 }
