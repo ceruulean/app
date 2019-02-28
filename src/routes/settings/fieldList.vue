@@ -1,15 +1,19 @@
 <template>
 <draggable
+  :key="rerender"
+  :options="draggableSettings"
+  :list="fields"
   @start="startSort"
   @sort="add"
   @end="dragging = false"
-  :options="sortableOptions"
-  :list="fields"
   >
   <div class="row" v-for="field in fields" :key="field.field"
 
     >
     <div class="drag"><i class="material-icons">drag_handle</i></div>
+    <div class="collapse" @click="expand(field.id)" v-if="field.children">
+      <i class="material-icons">{{expanded[field.id]? 'expand_more' : 'chevron_right'}}</i>
+    </div>
     <div class="inner row" @click.stop="startEditingField(field)">
       <div>
         {{ $helpers.formatTitle(field.field) }}
@@ -33,9 +37,6 @@
             "--"
         }}
       </div>
-    </div>
-    <div @click="expand" v-if="field.children">
-        <i class="material-icons">{{expanded? 'expand_less' : 'expand_more'}}</i>
     </div>
     <v-popover
       class="more-options"
@@ -72,7 +73,7 @@
       </template>
     </v-popover>
   
-    <settings-field-list v-if="field.children && expanded"
+    <settings-field-list v-if="field.children && expanded[field.id]"
     :class="[
       'group',
       (field.children.length > 0? '' : 'empty' ),
@@ -80,10 +81,14 @@
       ]"
     :groupID="field.id"
     :fields="field.children"
+    :draggableSettings="draggableSettings"
+    :key="rerender"
+    :expanded="expanded"
     @saveSort="saveSort"
     @warnRemoveField="warnRemoveField"
     @duplicateField="duplicateField"
     @startEditingField="startEditingField"
+    @expanded="expand"
     />
   </div>
 
@@ -102,6 +107,16 @@ export default {
       type: Number,
       required: false,
       default: null
+    },
+    expanded: {
+      type: Object,
+      required: false,
+      default: null
+    },
+    draggableSettings: {
+      type: Object,
+      required: false,
+      default: null
     }
   },
   computed: {
@@ -113,40 +128,6 @@ export default {
       }
       console.log("childless")
       return false;
-    },
-    sortableOptions(){
-      return {
-        group: {
-          name: "a",
-          direction: "vertical",
-          swapThreshold: 0.5,
-          emptyInsertThreshold: 40,
-          scroll: true,
-          scrollSensitivity: 100
-        }
-      };
-    },
-    store(){ //SortableJS in VueDraggable
-      return {
-		/**
-		 * Get the order of elements. Called once during initialization.
-		 * @param   {Sortable}  sortable
-		 * @returns {Array}
-		 */
-		get: function (sortable) {
-			var order = localStorage.getItem(sortable.options.group.name);
-			return order ? order.split('|') : [];
-		},
-
-		/**
-		 * Save the order of elements. Called onEnd (when the item is dropped).
-		 * @param {Sortable}  sortable
-		 */
-		set: function (sortable) {
-			var order = sortable.toArray();
-			localStorage.setItem(sortable.options.group.name, order.join('|'));
-		    }
-      }
     },
   },
   methods:{
@@ -170,8 +151,9 @@ export default {
     log(){
       console.log(this.fields);
     },
-    expand(){
-      this.expanded = !this.expanded;
+    expand(ID){
+      this.$emit('expanded', ID);
+      this.rerender = !this.rerender; // hacky, force collapse visibility
     },
     startSort(){
       this.dragging = true;
@@ -208,7 +190,7 @@ export default {
         "sort"
       ],
       dragging: false,
-      expanded:false
+      rerender: false,
     }
   }
 }
@@ -245,9 +227,6 @@ export default {
     > div {
       
       border-bottom: none;
-      &:not(.group):not(.drag):not(.more-options) {
-        flex-basis: 200px;
-      }
     }
 
     .inner{
@@ -255,6 +234,7 @@ export default {
 
       > div {
         padding:0;
+        flex-basis: 200px;
       }
     }
 
@@ -282,13 +262,22 @@ export default {
     }
 
 .drag {
-      user-select: none;
-      cursor: -webkit-grab;
-      color: var(--lighter-gray);
+  user-select: none;
+  cursor: -webkit-grab;
+  color: var(--lighter-gray);
 
-      &:hover {
-        color: var(--dark-gray);
-      }
+  &:hover {
+    color: var(--dark-gray);
+  }
+}
+
+.collapse{
+  padding-left:5px;
+  color: var(--lighter-gray);
+
+  &:hover {
+    color: var(--dark-gray);
+  }
 }
 
 .more-options {

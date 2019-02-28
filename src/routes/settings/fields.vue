@@ -39,11 +39,14 @@
 
         <VSettingsFieldList
           :fields="groups"
+          :expanded="expanded"
+          :draggableSettings="draggableSettings"
           @startSort="startSort"
           @saveSort="saveSort"
           @warnRemoveField="warnRemoveField"
           @duplicateField="duplicateField"
           @startEditingField="startEditingField"
+          @expanded="expand"
           />
 
       </div>
@@ -134,13 +137,6 @@ export default {
   },
   data() {
     return {
-      duplicateInterfaceBlacklist: [
-        "primary-key",
-        "many-to-many",
-        "one-to-many",
-        "many-to-one",
-        "sort"
-      ],
       fieldSaving: false,
       saving: false,
       dragging: false,
@@ -148,6 +144,7 @@ export default {
       fields: null,
       directusFields: null,
       groups: null,
+      expanded: {},
 
       notFound: false,
       error: false,
@@ -249,6 +246,14 @@ export default {
       groupFields.forEach(field => field.children.sort(comparator));
         return groupedGroups.sort(comparator);
     },
+    draggableSettings(){
+      return {
+        group: "a",
+        swapThreshold: 0.5,
+        scroll: true,
+        scrollSensitivity: 100
+      }
+    },
   },
   watch:{
     fields: {
@@ -325,11 +330,6 @@ export default {
       }
 
       this.$set(this.edits, field, value);
-    },
-    canDuplicate(fieldInterface) {
-      return (
-        this.duplicateInterfaceBlacklist.includes(fieldInterface) === false
-      );
     },
     duplicateFieldSettings({ fieldInfo, collection }) {
       const requests = [];
@@ -592,6 +592,9 @@ export default {
             error
           });
         });
+    },
+    expand(ID){
+      this.expanded[ID] = !this.expanded[ID];
     }
   },
   beforeRouteEnter(to, from, next) {
