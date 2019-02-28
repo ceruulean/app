@@ -341,13 +341,12 @@ export default {
     },
     updateSort(field, direction) {
 
-      var newSortVal = {
+      const newSortVal = {
         field,
         asc: field === this.sortVal.field ? !this.sortVal.asc : "ASC"
       };
 
-      if ((field == this.manualSortField) && this.manualSorting) {
-      } else {
+      if (!(field == this.manualSortField) && !this.manualSorting) {
         this.manualSorting = false;
       }
 
