@@ -697,7 +697,8 @@ export default {
             "many-to-one",
             "many-to-many",
             "file",
-            "translation"
+            "translation",
+            "checkboxes-relational"
           ]
         }
       ];
