@@ -523,11 +523,21 @@ export default {
           this.$router.push(`/settings/collections/${this.newName}`);
         })
         .catch(error => {
+          this.adding = false;
           this.$store.dispatch("loadingFinished", id);
-          this.$events.emit("error", {
-            notify: this.$t("something_went_wrong_body"),
-            error
-          });
+          if (error) {
+            // Use bit more descriptive error if possible
+            const errors = {
+              4: this.$t("collection_invalid_name")
+            };
+            this.$events.emit("error", {
+              notify:
+                error.code in errors
+                  ? errors[error.code]
+                  : this.$t("something_went_wrong_body"),
+              error
+            });
+          }
         });
     },
     toggleManage(collection) {
