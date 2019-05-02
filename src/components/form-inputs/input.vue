@@ -1,9 +1,10 @@
 <template>
-  <div
-    :class="{ 'icon-left': iconLeft, 'icon-right': iconRight }"
-    class="v-input"
-  >
+  <div :class="{ 'icon-left': iconLeft, 'icon-right': iconRight }" class="v-input">
+    <!-- Far from ideal, but it does the trick -->
+
     <input
+      v-if="mask"
+      v-mask="mask"
       ref="input"
       :class="{ charactercount }"
       :type="type"
@@ -24,12 +25,38 @@
       @keydown="$emit('keydown', $event)"
       @input="$emit('input', $event.target.value)"
     />
-    <i v-if="iconLeft" :class="iconLeftColor" class="material-icons">{{
-      iconLeft
-    }}</i>
-    <i v-if="iconRight" :class="iconRightColor" class="material-icons">{{
-      iconRight
-    }}</i>
+
+    <input
+      v-else
+      ref="input"
+      :class="{ charactercount }"
+      :type="type"
+      :autocomplete="autocomplete"
+      :max="max"
+      :maxlength="maxlength"
+      :min="min"
+      :minlength="minlength"
+      :name="name"
+      :placeholder="placeholder"
+      :required="required"
+      :readonly="readonly || disabled"
+      :spellcheck="spellcheck"
+      :value="value"
+      :id="id"
+      :step="step"
+      @keyup="$emit('keyup', $event)"
+      @keydown="$emit('keydown', $event)"
+      @input="$emit('input', $event.target.value)"
+    />
+
+    <v-icon v-if="iconLeft" :name="iconLeft" :color="iconLeftColor" v-tooltip="iconLeftTooltip" />
+    <v-icon
+      v-if="iconRight"
+      :name="iconRight"
+      :color="iconRightColor"
+      v-tooltip="iconRightTooltip"
+    />
+
     <span v-if="charactercount">{{ charsRemaining }}</span>
   </div>
 </template>
@@ -102,7 +129,6 @@ export default {
       type: [String, Number],
       default: 1
     },
-
     iconLeft: {
       type: String,
       default: ""
@@ -110,6 +136,10 @@ export default {
     iconLeftColor: {
       type: String,
       default: null
+    },
+    iconLeftTooltip: {
+      type: String,
+      default: ""
     },
     iconRight: {
       type: String,
@@ -119,6 +149,10 @@ export default {
       type: String,
       default: null
     },
+    iconRightTooltip: {
+      type: String,
+      default: ""
+    },
     valid: {
       type: Boolean,
       default: true
@@ -126,6 +160,10 @@ export default {
     charactercount: {
       type: Boolean,
       default: false
+    },
+    mask: {
+      type: [String, Array, Boolean],
+      default: null
     }
   },
   computed: {
@@ -153,7 +191,6 @@ export default {
     color: var(--gray);
     padding: 10px;
     font-size: 1rem;
-    font-weight: 500;
     line-height: 1.5;
     text-transform: none;
     transition: var(--fast) var(--transition);
@@ -174,7 +211,6 @@ export default {
 
     &::placeholder {
       color: var(--lighter-gray);
-      font-weight: 500;
     }
 
     &:hover:not(:read-only) {
@@ -184,7 +220,7 @@ export default {
 
     &:focus:not(:read-only) {
       color: var(--dark-gray);
-      border-color: var(--accent);
+      border-color: var(--dark-gray);
       outline: 0;
     }
 
@@ -248,11 +284,7 @@ export default {
     font-size: 24px;
 
     &.accent {
-      color: var(--accent);
-    }
-
-    &.secondary {
-      color: var(--secondary);
+      color: var(--darkest-gray);
     }
 
     &.success {
