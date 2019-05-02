@@ -34,7 +34,6 @@
         </div>
       </div>
       <div class="body" :class="{ dragging }">
-
         <VSettingsFieldList
           :fields="groups"
           @startSort="startSort"
@@ -42,8 +41,7 @@
           @warnRemoveField="warnRemoveField"
           @duplicateField="duplicateField"
           @startEditingField="startEditingField"
-          />
-
+        />
       </div>
     </div>
 
@@ -200,43 +198,38 @@ export default {
         ...this.edits
       };
     },
-   fieldTree() {
-
+    fieldTree() {
       var [filtered, nonGroupFields] = this.$lodash.partition(
         Object.values(this.fields),
-        field => field.type.toLowerCase() === "group")
+        field => field.type.toLowerCase() === "group"
+      );
 
       var groupFields = filtered.map(group => ({
-          ...group,
-          children: []
-        }));
-      
-    var groupedGroups = []
+        ...group,
+        children: []
+      }));
+
+      console.log(groupFields);
+      var groupedGroups = [];
 
       nonGroupFields.forEach(field => {
         if (field.group != null) {
-          const groupIndex = this.$lodash.findIndex(
-            groupFields,
-            group => group.id === field.group
-          );
+          const groupIndex = this.$lodash.findIndex(groupFields, group => group.id === field.group);
           return groupFields[groupIndex].children.push(field);
         }
-          return groupedGroups.push(field);
-      })
+        return groupedGroups.push(field);
+      });
 
       groupFields.forEach((field, index) => {
-        const groupIndex = this.$lodash.findIndex(
-            groupFields,
-            group2 => group2.id === field.group
-          );
+        const groupIndex = this.$lodash.findIndex(groupFields, group2 => group2.id === field.group);
         if (groupIndex > -1) {
           groupFields[groupIndex].children.push(field);
         } else {
           groupedGroups.push(field);
         }
-      })
+      });
 
-      const comparator = function (a, b){
+      const comparator = function(a, b) {
         if (a.sort == b.sort) return 0;
         if (a.sort === null) return 1;
         if (b.sort === null) return -1;
@@ -244,14 +237,15 @@ export default {
       };
 
       groupFields.forEach(field => field.children.sort(comparator));
-        return groupedGroups.sort(comparator);
-    },
+
+      return groupedGroups.sort(comparator);
+    }
   },
-  watch:{
+  watch: {
     fields: {
-    deep: true,
-    handler() {
-      this.groups = [...this.fieldTree];
+      deep: true,
+      handler() {
+        this.groups = [...this.fieldTree];
       }
     }
   },
@@ -501,18 +495,19 @@ export default {
           this.fields = this.fields.filter(({ field }) => field !== fieldName);
           //delete group relations
           if (fieldToDelete.type == "group") {
-            this.saveSort(this.fields.filter(fieldG => 
-              fieldG.group == fieldToDelete.id
-              )
-              .map(related => {
-                return {
-                field: related.field,
-                sort: related.sort,
-                group: null
-                }
-              }))
+            this.saveSort(
+              this.fields
+                .filter(fieldG => fieldG.group == fieldToDelete.id)
+                .map(related => {
+                  return {
+                    field: related.field,
+                    sort: related.sort,
+                    group: null
+                  };
+                })
+            );
           }
-          
+
           this.removingField = false;
           this.fieldToBeRemoved = null;
           this.confirmFieldRemove = false;
@@ -541,20 +536,20 @@ export default {
     },
     saveSort(deltas) {
       this.dragging = false;
-      const fieldUpdates = this.fields.map((field) => {
-        const found = this.$lodash.find(deltas, ['field', field.field]);
+      const fieldUpdates = this.fields.map(field => {
+        const found = this.$lodash.find(deltas, ["field", field.field]);
         if (found) {
           return {
-          field: field.field,
-          sort : found.sort,
-          group : found.group
-          }
+            field: field.field,
+            sort: found.sort,
+            group: found.group
+          };
         } else {
-            return {
-              field: field.field,
-            }
-          }
-        });
+          return {
+            field: field.field
+          };
+        }
+      });
 
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
@@ -650,7 +645,6 @@ h2 {
 }
 
 .table {
-
   background-color: var(--white);
   border: var(--input-border-width) solid var(--lighter-gray);
   border-radius: var(--border-radius);
@@ -729,55 +723,16 @@ label.label {
   font-weight: 400;
 }
 
-<<<<<<< HEAD
 .row {
-    display: flex;
-    align-items: center;
-    height: 40px;
-    > div {
-      padding: 5px 5px;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  > div {
+    padding: 5px 5px;
 
-      &:not(.drag):not(.more-options) {
-        flex-basis: 200px;
-=======
-.ctx-menu {
-  list-style: none;
-  padding: 0;
-  width: 136px;
-
-  li {
-    display: block;
-  }
-
-  i {
-    color: var(--light-gray);
-    margin-right: 5px;
-    transition: color var(--fast) var(--transition);
-  }
-
-  button {
-    display: flex;
-    align-items: center;
-    padding: 5px;
-    color: var(--gray);
-    width: 100%;
-    height: 100%;
-    transition: color var(--fast) var(--transition);
-    &:disabled,
-    &[disabled] {
-      color: var(--lighter-gray);
-      i {
-        color: var(--lighter-gray);
-      }
+    &:not(.drag):not(.more-options) {
+      flex-basis: 200px;
     }
-    &:not(:disabled):not(&[disabled]):hover {
-      color: var(--darkest-gray);
-      transition: none;
-      i {
-        color: var(--darkest-gray);
-        transition: none;
->>>>>>> master
-      }
   }
 }
 
